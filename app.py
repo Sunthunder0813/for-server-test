@@ -230,6 +230,10 @@ def settings_page():
 def violations_page():
     return render_template('violations.html')
 
+@app.route('/ping')
+def ping():
+    return "pong"
+
 # --- Video Feed Routes ---
 def gen_single(stream, cam_name):
     while True:

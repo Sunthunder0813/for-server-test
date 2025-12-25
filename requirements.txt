@@ -4,3 +4,4 @@ numpy
 gunicorn
 # ...add any other dependencies your app uses...
 # e.g. hailo_platform, etc.
+# web-production-787ca.up.railway.app

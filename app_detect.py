@@ -4,19 +4,25 @@ import threading
 import logging
 import os
 
-USE_REMOTE_DETECTION = os.environ.get("USE_REMOTE_DETECTION", "0") == "1"
-RASPI_URL = os.environ.get("RASPI_URL", "http://192.168.18.32:5000/detect")
-
 logger = logging.getLogger("ParkingApp")
 
-if not USE_REMOTE_DETECTION:
-    # All Hailo and config imports are only done here
+# Try to determine if we should use remote detection
+USE_REMOTE_DETECTION = os.environ.get("USE_REMOTE_DETECTION", None)
+RASPI_URL = os.environ.get("RASPI_URL", "http://192.168.18.32:5000/detect")
+
+if USE_REMOTE_DETECTION is None:
+    # Try to import Hailo, if fails, use remote detection
     try:
         from hailo_platform import HEF, VDevice, InferVStreams, ConfigureParams, InputVStreamParams, OutputVStreamParams, HailoStreamInterface
         import config
-    except ImportError as e:
-        raise RuntimeError("Hailo libraries not found. This code must run on the Raspberry Pi with Hailo SDK installed.") from e
+        USE_REMOTE_DETECTION = False
+    except ImportError:
+        USE_REMOTE_DETECTION = True
+else:
+    USE_REMOTE_DETECTION = USE_REMOTE_DETECTION == "1"
 
+if not USE_REMOTE_DETECTION:
+    # All Hailo and config imports are only done here
     class DetectionResult:
         def __init__(self, xyxy, confs, clss):
             self.xyxy = xyxy

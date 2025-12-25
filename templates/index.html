@@ -272,7 +272,8 @@
             try {
                 const res = await fetch('/api/raspi_ip');
                 const data = await res.json();
-                RASPI_BASE = `http://${data.ip}:${data.port}`;
+                // Use HTTPS and omit port for ngrok
+                RASPI_BASE = `https://${data.ip}`;
                 setRaspiFeeds();
                 setInterval(checkCameraStatus, 1200);
                 setInterval(checkServerHealth, 3000);

@@ -91,6 +91,13 @@ def api_zone_selector():
     except Exception as e:
         return jsonify({"success": False, "error": str(e)})
 
+@app.route('/api/raspi_ip')
+def raspi_ip():
+    # You can set this as an environment variable in Railway, or fallback to a default
+    raspi_ip = os.environ.get("RASPI_IP", "192.168.18.32")
+    raspi_port = os.environ.get("RASPI_PORT", "5000")
+    return jsonify({"ip": raspi_ip, "port": raspi_port})
+
 @app.errorhandler(Exception)
 def handle_exception(e):
     # Log the full traceback

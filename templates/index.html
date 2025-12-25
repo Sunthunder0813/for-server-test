@@ -266,14 +266,32 @@
     <!-- Bootstrap JS Bundle CDN (optional, for future interactivity) -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
     <script>
-        // Set your Raspberry Pi IP address here:
-        const RASPI_IP = "192.168.18.32"; // <-- CHANGE THIS TO YOUR RASPBERRY PI IP
-        const RASPI_PORT = "5000";
-        const RASPI_BASE = `http://${RASPI_IP}:${RASPI_PORT}`;
+        // Remove the hardcoded IP/port:
+        // const RASPI_IP = "192.168.18.32";
+        // const RASPI_PORT = "5000";
+        // const RASPI_BASE = `http://${RASPI_IP}:${RASPI_PORT}`;
 
-        // Helper to build URLs
+        let RASPI_BASE = null;
+
+        async function fetchRaspiBase() {
+            try {
+                const res = await fetch('/api/raspi_ip');
+                const data = await res.json();
+                RASPI_BASE = `http://${data.ip}:${data.port}`;
+                setRaspiFeeds();
+            } catch (e) {
+                console.error("Failed to fetch Raspberry Pi IP:", e);
+            }
+        }
+
         function raspiUrl(path) {
-            return `${RASPI_BASE}${path}`;
+            return RASPI_BASE ? `${RASPI_BASE}${path}` : "";
+        }
+
+        function setRaspiFeeds() {
+            if (!RASPI_BASE) return;
+            liveVideoC1.src = raspiUrl("/video_feed_c1");
+            liveVideoC2.src = raspiUrl("/video_feed_c2");
         }
 
         // Hide sidebar toggle button when sidebar is open, show when closed
@@ -290,10 +308,6 @@
         const overlayC2 = document.getElementById('reconnectingOverlayC2');
         const liveVideoC1 = document.getElementById('liveVideoC1');
         const liveVideoC2 = document.getElementById('liveVideoC2');
-
-        // Set camera feed sources to use Raspberry Pi IP
-        liveVideoC1.src = "/video_feed_c1";
-        liveVideoC2.src = "/video_feed_c2";
 
         // Track previous reconnecting state to avoid unnecessary class toggling (prevents flicker)
         let prevC1 = null, prevC2 = null;
@@ -375,7 +389,10 @@
             }
         }
         setInterval(checkServerHealth, 3000);
-        window.onload = checkServerHealth;
+        window.onload = function() {
+            fetchRaspiBase();
+            checkServerHealth();
+        };
     </script>
 </body>
 </html>

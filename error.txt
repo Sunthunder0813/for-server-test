@@ -21,3 +21,29 @@ INFO:werkzeug:192.168.18.32 - - [25/Dec/2025 21:23:30] "GET /api/health HTTP/1.1
 INFO:werkzeug:192.168.18.32 - - [25/Dec/2025 21:23:33] "GET /api/health HTTP/1.1" 200 -
 ^CFATAL: exception not rethrown
 Aborted
+
+# How to Expose Your Raspberry Pi Flask Server to Railway (ngrok method)
+
+1. Install ngrok on your Raspberry Pi:
+   curl -s https://ngrok-agent.s3.amazonaws.com/ngrok.asc | sudo tee /etc/apt/trusted.gpg.d/ngrok.asc >/dev/null
+   echo "deb https://ngrok-agent.s3.amazonaws.com buster main" | sudo tee /etc/apt/sources.list.d/ngrok.list
+   sudo apt update && sudo apt install ngrok
+
+2. Start your Flask server on the Pi:
+   python3 raspi_server.py
+
+3. In another terminal, run ngrok to expose port 5000:
+   ngrok http 5000
+
+4. Copy the public URL shown by ngrok (e.g., https://abc123.ngrok.io).
+
+5. In your Railway project, set environment variables:
+   RASPI_IP=abc123.ngrok.io
+   RASPI_PORT=443
+
+6. Your Railway app will now connect to your Pi using the ngrok public URL.
+
+# Notes:
+- For production, secure your endpoints (authentication, HTTPS, etc.).
+- The ngrok URL changes each time unless you have a paid plan.
+- You can use other tunneling solutions (Cloudflare Tunnel, Tailscale, etc.) for more permanent or secure setups.

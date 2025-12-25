@@ -279,6 +279,12 @@
                 const data = await res.json();
                 RASPI_BASE = `http://${data.ip}:${data.port}`;
                 setRaspiFeeds();
+                // Start camera status polling only after RASPI_BASE is set
+                setInterval(checkCameraStatus, 1200);
+                checkCameraStatus();
+                // Start health check polling
+                setInterval(checkServerHealth, 3000);
+                checkServerHealth();
             } catch (e) {
                 console.error("Failed to fetch Raspberry Pi IP:", e);
             }
@@ -337,7 +343,6 @@
                 prevC1 = prevC2 = true;
             }
         }
-        setInterval(checkCameraStatus, 1200);
 
         // Add this function to reload the video feeds (force refresh)
         function reloadVideoFeeds() {
@@ -389,10 +394,9 @@
                 lastHealthOk = false;
             }
         }
-        setInterval(checkServerHealth, 3000);
+
         window.onload = function() {
             fetchRaspiBase();
-            checkServerHealth();
         };
     </script>
 </body>

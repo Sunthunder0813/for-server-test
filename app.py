@@ -1,8 +1,9 @@
 import os
 import logging
-from flask import Flask, render_template, jsonify, request
+from flask import Flask, render_template, jsonify, request, make_response
 import config
 import importlib
+import traceback
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("ParkingApp")
@@ -89,6 +90,16 @@ def api_zone_selector():
         return jsonify({"success": False, "error": "No zone found"})
     except Exception as e:
         return jsonify({"success": False, "error": str(e)})
+
+@app.errorhandler(Exception)
+def handle_exception(e):
+    # Log the full traceback
+    logger.error("Unhandled Exception: %s\n%s", e, traceback.format_exc())
+    # For API endpoints, return JSON error
+    if request.path.startswith('/api/'):
+        return jsonify({"success": False, "error": str(e)}), 500
+    # For web pages, show a simple error page
+    return make_response("Internal Server Error", 500)
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))

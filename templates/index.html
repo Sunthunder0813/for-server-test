@@ -256,8 +256,12 @@
             </div>
         </div>
     </div>
-    <div id="serverStatusBanner" class="alert alert-danger text-center" style="display:none;position:fixed;top:0;left:0;width:100%;z-index:9999;">
-        <i class="bi bi-exclamation-triangle-fill"></i> Server Offline: Unable to connect to Raspberry Pi
+    <!-- Server Connection Status Banner -->
+    <div id="serverStatusBanner"
+         class="alert text-center"
+         style="display:none;position:fixed;top:0;left:0;width:100%;z-index:9999;font-weight:bold;">
+        <span id="serverStatusIcon"></span>
+        <span id="serverStatusText"></span>
     </div>
     <!-- Bootstrap JS Bundle CDN (optional, for future interactivity) -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
@@ -339,19 +343,34 @@
         // Server health check logic
         let lastHealthOk = true;
         async function checkServerHealth() {
+            const banner = document.getElementById('serverStatusBanner');
+            const icon = document.getElementById('serverStatusIcon');
+            const text = document.getElementById('serverStatusText');
             try {
                 const res = await fetch(raspiUrl('/api/health'), {cache: "no-store"});
                 if (res.ok) {
-                    if (!lastHealthOk) {
-                        document.getElementById('serverStatusBanner').style.display = 'none';
-                        lastHealthOk = true;
-                    }
+                    // Connected
+                    banner.classList.remove('alert-danger');
+                    banner.classList.add('alert-success');
+                    icon.innerHTML = '<i class="bi bi-check-circle-fill"></i>';
+                    text.textContent = ' Connected to Raspberry Pi Server';
+                    banner.style.display = '';
+                    lastHealthOk = true;
                 } else {
-                    document.getElementById('serverStatusBanner').style.display = '';
+                    // Not connected
+                    banner.classList.remove('alert-success');
+                    banner.classList.add('alert-danger');
+                    icon.innerHTML = '<i class="bi bi-exclamation-triangle-fill"></i>';
+                    text.textContent = ' Server Offline: Unable to connect to Raspberry Pi';
+                    banner.style.display = '';
                     lastHealthOk = false;
                 }
             } catch (e) {
-                document.getElementById('serverStatusBanner').style.display = '';
+                banner.classList.remove('alert-success');
+                banner.classList.add('alert-danger');
+                icon.innerHTML = '<i class="bi bi-exclamation-triangle-fill"></i>';
+                text.textContent = ' Server Offline: Unable to connect to Raspberry Pi';
+                banner.style.display = '';
                 lastHealthOk = false;
             }
         }

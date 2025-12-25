@@ -6,8 +6,17 @@ WARNING: This is a development server. Do not use it in a production deployment.
  * Running on http://127.0.0.1:5000
  * Running on http://192.168.18.32:5000
 Press CTRL+C to quit
-127.0.0.1 - - [25/Dec/2025 20:58:58] "GET / HTTP/1.1" 404 -
-192.168.18.32 - - [25/Dec/2025 20:59:04] "GET / HTTP/1.1" 404 -
-
-
-
+192.168.18.32 - - [25/Dec/2025 21:04:11] "GET /api/health HTTP/1.1" 200 -
+192.168.18.32 - - [25/Dec/2025 21:04:11] "GET /api/health HTTP/1.1" 200 -
+192.168.18.32 - - [25/Dec/2025 21:04:14] "GET /api/health HTTP/1.1" 200 -
+192.168.18.32 - - [25/Dec/2025 21:04:16] "GET / HTTP/1.1" 404 -
+192.168.18.32 - - [25/Dec/2025 21:04:17] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [25/Dec/2025 21:04:20] "GET / HTTP/1.1" 404 -
+192.168.18.32 - - [25/Dec/2025 21:04:21] "GET /api/health HTTP/1.1" 200 -
+192.168.18.32 - - [25/Dec/2025 21:04:23] "GET /api/health HTTP/1.1" 200 -
+192.168.18.32 - - [25/Dec/2025 21:04:26] "GET /api/health HTTP/1.1" 200 -
+192.168.18.32 - - [25/Dec/2025 21:04:27] "GET /api/health HTTP/1.1" 200 -
+192.168.18.32 - - [25/Dec/2025 21:04:30] "GET /api/health HTTP/1.1" 200 -
+192.168.18.32 - - [25/Dec/2025 21:04:33] "GET /api/health HTTP/1.1" 200 -
+192.168.18.32 - - [25/Dec/2025 21:04:36] "GET /api/health HTTP/1.1" 200 -
+^Cset-admin@raspberrypi:~/for-server-test $ 

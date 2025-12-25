@@ -93,8 +93,9 @@ def api_zone_selector():
 
 @app.route('/api/raspi_ip')
 def raspi_ip():
-    # You can set this as an environment variable in Railway, or fallback to a default
+    # For ngrok, only the hostname is needed; frontend will use HTTPS and omit port.
     raspi_ip = os.environ.get("RASPI_IP", "192.168.18.32")
+    # raspi_port is kept for compatibility, but frontend should ignore it for ngrok
     raspi_port = os.environ.get("RASPI_PORT", "5000")
     return jsonify({"ip": raspi_ip, "port": raspi_port})
 

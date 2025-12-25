@@ -314,7 +314,8 @@
 
         async function checkCameraStatus() {
             try {
-                const res = await fetch('/api/camera_status');
+                // FIX: Use raspiUrl to call the Pi server, not the local backend
+                const res = await fetch(raspiUrl('/api/camera_status'));
                 const status = await res.json();
 
                 if (prevC1 !== status.Camera_1.reconnecting) {

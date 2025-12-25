@@ -292,15 +292,15 @@
         const liveVideoC2 = document.getElementById('liveVideoC2');
 
         // Set camera feed sources to use Raspberry Pi IP
-        liveVideoC1.src = raspiUrl("/video_feed_c1");
-        liveVideoC2.src = raspiUrl("/video_feed_c2");
+        liveVideoC1.src = "/video_feed_c1";
+        liveVideoC2.src = "/video_feed_c2";
 
         // Track previous reconnecting state to avoid unnecessary class toggling (prevents flicker)
         let prevC1 = null, prevC2 = null;
 
         async function checkCameraStatus() {
             try {
-                const res = await fetch(raspiUrl('/api/camera_status'));
+                const res = await fetch('/api/camera_status');
                 const status = await res.json();
 
                 if (prevC1 !== status.Camera_1.reconnecting) {

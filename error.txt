@@ -6,37 +6,8 @@ WARNING: This is a development server. Do not use it in a production deployment.
  * Running on http://127.0.0.1:5000
  * Running on http://192.168.18.32:5000
 Press CTRL+C to quit
-192.168.18.32 - - [25/Dec/2025 20:51:13] "GET /video_feed_c1 HTTP/1.1" 404 -
-192.168.18.32 - - [25/Dec/2025 20:51:13] "GET /video_feed_c2 HTTP/1.1" 404 -
-192.168.18.32 - - [25/Dec/2025 20:51:13] "GET /api/health HTTP/1.1" 200 -
-192.168.18.32 - - [25/Dec/2025 20:51:14] "GET /api/camera_status HTTP/1.1" 404 -
-192.168.18.32 - - [25/Dec/2025 20:51:15] "GET /api/camera_status HTTP/1.1" 404 -
-192.168.18.32 - - [25/Dec/2025 20:51:16] "GET /api/health HTTP/1.1" 200 -
-192.168.18.32 - - [25/Dec/2025 20:51:16] "GET /api/camera_status HTTP/1.1" 404 -
-192.168.18.32 - - [25/Dec/2025 20:51:18] "GET /api/camera_status HTTP/1.1" 404 -
-127.0.0.1 - - [25/Dec/2025 20:51:19] "GET / HTTP/1.1" 404 -
-192.168.18.32 - - [25/Dec/2025 20:51:20] "GET /api/camera_status HTTP/1.1" 404 -
-192.168.18.32 - - [25/Dec/2025 20:51:20] "GET /api/health HTTP/1.1" 200 -
-192.168.18.32 - - [25/Dec/2025 20:51:21] "GET /api/camera_status HTTP/1.1" 404 -
-192.168.18.32 - - [25/Dec/2025 20:51:21] "GET /api/camera_status HTTP/1.1" 404 -
-192.168.18.32 - - [25/Dec/2025 20:51:22] "GET /api/health HTTP/1.1" 200 -
-192.168.18.32 - - [25/Dec/2025 20:51:22] "GET /api/camera_status HTTP/1.1" 404 -
-192.168.18.32 - - [25/Dec/2025 20:51:23] "GET / HTTP/1.1" 404 -
-192.168.18.32 - - [25/Dec/2025 20:51:23] "GET /favicon.ico HTTP/1.1" 404 -
-192.168.18.32 - - [25/Dec/2025 20:51:24] "GET /api/camera_status HTTP/1.1" 404 -
-192.168.18.32 - - [25/Dec/2025 20:51:25] "GET /api/camera_status HTTP/1.1" 404 -
-192.168.18.32 - - [25/Dec/2025 20:51:25] "GET /api/health HTTP/1.1" 200 -
-192.168.18.32 - - [25/Dec/2025 20:51:26] "GET /api/camera_status HTTP/1.1" 404 -
-192.168.18.32 - - [25/Dec/2025 20:51:27] "GET /api/camera_status HTTP/1.1" 404 -
-192.168.18.32 - - [25/Dec/2025 20:51:28] "GET /api/health HTTP/1.1" 200 -
-192.168.18.32 - - [25/Dec/2025 20:51:28] "GET /api/camera_status HTTP/1.1" 404 -
-192.168.18.32 - - [25/Dec/2025 20:51:30] "GET /api/camera_status HTTP/1.1" 404 -
-192.168.18.32 - - [25/Dec/2025 20:51:31] "GET /api/camera_status HTTP/1.1" 404 -
-192.168.18.32 - - [25/Dec/2025 20:51:31] "GET /api/health HTTP/1.1" 200 -
-192.168.18.32 - - [25/Dec/2025 20:51:32] "GET /api/camera_status HTTP/1.1" 404 -
-192.168.18.32 - - [25/Dec/2025 20:51:33] "GET /api/camera_status HTTP/1.1" 404 -
-192.168.18.32 - - [25/Dec/2025 20:51:34] "GET /api/health HTTP/1.1" 200 -
-192.168.18.32 - - [25/Dec/2025 20:51:34] "GET /api/camera_status HTTP/1.1" 404 -
-192.168.18.32 - - [25/Dec/2025 20:51:36] "GET /api/camera_status HTTP/1.1" 404 -
-192.168.18.32 - - [25/Dec/2025 20:51:37] "GET /api/camera_status HTTP/1.1" 404 -
-192.168.18.32 - - [25/Dec/2025 20:51:37] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [25/Dec/2025 20:58:58] "GET / HTTP/1.1" 404 -
+192.168.18.32 - - [25/Dec/2025 20:59:04] "GET / HTTP/1.1" 404 -
+
+
+

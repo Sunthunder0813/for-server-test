@@ -443,6 +443,18 @@ def api_zone_selector():
     except Exception as e:
         return jsonify({"success": False, "error": str(e)})
 
+@app.route('/api/health')
+def api_health():
+    return jsonify({"status": "ok", "server": "raspberry_pi_5", "timestamp": time.time()})
+
+@app.route('/api/camera_ips')
+def api_camera_ips():
+    return jsonify({
+        "Camera_1": config.CAM1_URL,
+        "Camera_2": config.CAM2_URL
+    })
+
+
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
     app.run(host='0.0.0.0', port=port, threaded=True)

@@ -248,4 +248,6 @@ def decode_image(data):
 
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 5000))
+    # Print the actual host and port for debugging
+    print(f"Starting Flask on 0.0.0.0:{port}")
     app.run(host='0.0.0.0', port=port, threaded=True)

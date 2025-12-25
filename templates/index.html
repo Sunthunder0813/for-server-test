@@ -279,11 +279,10 @@
                 const data = await res.json();
                 RASPI_BASE = `http://${data.ip}:${data.port}`;
                 setRaspiFeeds();
-                // Start camera status polling only after RASPI_BASE is set
+                // Start polling only after RASPI_BASE is set
                 setInterval(checkCameraStatus, 1200);
-                checkCameraStatus();
-                // Start health check polling
                 setInterval(checkServerHealth, 3000);
+                checkCameraStatus();
                 checkServerHealth();
             } catch (e) {
                 console.error("Failed to fetch Raspberry Pi IP:", e);
@@ -296,6 +295,7 @@
 
         function setRaspiFeeds() {
             if (!RASPI_BASE) return;
+            // Always use raspiUrl for video feeds
             liveVideoC1.src = raspiUrl("/video_feed_c1");
             liveVideoC2.src = raspiUrl("/video_feed_c2");
         }
@@ -320,7 +320,7 @@
 
         async function checkCameraStatus() {
             try {
-                // FIX: Use raspiUrl to call the Pi server, not the local backend
+                // Always use raspiUrl to call the Pi/ngrok server for camera status
                 const res = await fetch(raspiUrl('/api/camera_status'));
                 const status = await res.json();
 
@@ -363,6 +363,7 @@
         // Server health check logic
         let lastHealthOk = true;
         async function checkServerHealth() {
+            // Always use raspiUrl for health check
             const banner = document.getElementById('serverStatusBanner');
             const icon = document.getElementById('serverStatusIcon');
             const text = document.getElementById('serverStatusText');

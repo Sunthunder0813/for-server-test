@@ -35,13 +35,25 @@ Aborted
 3. In another terminal, run ngrok to expose port 5000:
    ngrok http 5000
 
-4. Copy the public URL shown by ngrok (e.g., https://abc123.ngrok.io).
+4. Copy the public URL shown by ngrok (e.g., https://unattainted-elvina-unviewable.ngrok-free.dev).
 
 5. In your Railway project, set environment variables:
-   RASPI_IP=abc123.ngrok.io
-   RASPI_PORT=443
 
-6. Your Railway app will now connect to your Pi using the ngrok public URL.
+   # Step-by-step using the Railway Dashboard (recommended):
+
+   1. Go to https://railway.app and open your project.
+   2. Click the "Settings" tab in the left sidebar.
+   3. Scroll down to the "Variables" or "Environment" section.
+   4. Click "Add Variable".
+   5. Enter `RASPI_IP` as the key and your ngrok hostname (e.g., `unattainted-elvina-unviewable.ngrok-free.dev`) as the value.
+   6. Click "Add Variable" again.
+   7. Enter `RASPI_PORT` as the key and `443` as the value.
+   8. Make sure your frontend JavaScript calls `/api/camera_status` on the Pi server (using the ngrok URL), NOT on the Railway backend.
+      - All camera/status/detection requests must go to the Pi/ngrok URL, not to Railway.
+
+   # Now your Railway app will use these variables to connect to your Pi via ngrok.
+
+   # (For local development, you can use `export RASPI_IP=...` and `export RASPI_PORT=...` in your terminal before running your app.)
 
 # Notes:
 - For production, secure your endpoints (authentication, HTTPS, etc.).
@@ -61,4 +73,4 @@ Web Interface                 http://127.0.0.1:4040
 Forwarding                    https://unattainted-elvina-unviewable.ngrok-free.dev -> http://localhost:5000          
                                                                                                                      
 Connections                   ttl     opn     rt1     rt5     p50     p90                                            
-                              0       0       0.00    0.00    0.00    0.00    
+                              0       0       0.00    0.00    0.00    0.00

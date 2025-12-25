@@ -1,0 +1,326 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>YOLO Tracking Monitor</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+    <style>
+        body {
+            background-color: #f8f8f8;
+            color: #f8f9fa;
+        }
+        .video-container {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            align-items: flex-start;
+            min-height: 60vh;
+            overflow-x: auto;
+            width: 100%;
+            box-sizing: border-box;
+            gap: 1.5rem;
+        }
+        .camera-frame-wrapper {
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            width: 100%;
+            max-width: 700px;
+            min-width: 250px;
+            flex: 1 1 350px;
+            overflow: hidden; /* Ensure overlay doesn't spill outside */
+        }
+        .video-frame-container {
+            position: relative;
+            width: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .video-frame {
+            border-radius: 12px;
+            box-shadow: 0 4px 24px rgba(0,0,0,0.5);
+            border: 2px solid #343a40;
+            width: 100%;
+            height: auto;
+            aspect-ratio: 16/9;
+            background: #000;
+            object-fit: contain;
+            display: block;
+            max-width: 100%;
+        }
+        .camera-label {
+            color: #222;
+            font-weight: bold;
+            margin: 0.5rem 0 0.2rem 0;
+            font-size: 1.1rem;
+            text-align: center;
+        }
+        .reconnecting-overlay {
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 10;
+            background: rgba(30,30,30,0.45);
+            backdrop-filter: blur(6px);
+            pointer-events: none;
+            transition: opacity 0.3s;
+            opacity: 0;
+        }
+        .reconnecting-overlay.active {
+            opacity: 1;
+            pointer-events: auto;
+        }
+        .reconnecting-spinner {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .reconnecting-spinner .spinner-border {
+            width: 3rem; height: 3rem;
+            color: #ff9800;
+        }
+        .reconnecting-spinner span {
+            margin-top: 1rem;
+            color: #fff;
+            font-size: 1.3rem;
+            font-weight: bold;
+            text-shadow: 0 2px 8px #000;
+            letter-spacing: 1px;
+            animation: pulse 1.2s infinite;
+        }
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
+        /* Responsive Styles */
+        @media (max-width: 1200px) {
+            .camera-frame-wrapper {
+                max-width: 90vw;
+            }
+        }
+        @media (max-width: 1024px) {
+            .video-container {
+                min-height: 50vh;
+                padding: 0.5rem;
+                gap: 1rem;
+            }
+            .camera-frame-wrapper {
+                max-width: 100vw;
+            }
+        }
+        @media (max-width: 900px) {
+            .video-container {
+                flex-direction: column;
+                gap: 1.5rem;
+            }
+            .camera-frame-wrapper {
+                max-width: 98vw;
+            }
+        }
+        @media (max-width: 768px) {
+            .container {
+                padding-left: 0.5rem;
+                padding-right: 0.5rem;
+            }
+            .video-container {
+                min-height: 40vh;
+                flex-direction: column;
+                padding: 0.5rem;
+                gap: 1rem;
+            }
+            .camera-frame-wrapper {
+                max-width: 100vw;
+            }
+            .video-frame {
+                width: 100% !important;
+                max-width: 100% !important;
+                height: auto !important;
+                margin: 0 auto;
+            }
+            h1 {
+                font-size: 1.3rem !important;
+                margin-top: 1rem !important;
+                margin-bottom: 1rem !important;
+            }
+            .sidebar-toggle {
+                left: 0.5rem;
+                top: 0.8rem;
+                padding: 0.4rem 0.6rem;
+            }
+        }
+        @media (max-width: 480px) {
+            .container {
+                padding-left: 0.25rem;
+                padding-right: 0.25rem;
+            }
+            .video-container {
+                min-height: 20vh;
+                flex-direction: column;
+                padding: 0.25rem;
+                gap: 0.5rem;
+            }
+            .camera-frame-wrapper {
+                max-width: 100vw;
+            }
+            .video-frame {
+                width: 100% !important;
+                max-width: 100% !important;
+                height: auto !important;
+                margin: 0 auto;
+            }
+            h1 {
+                font-size: 1rem !important;
+                margin-top: 0.5rem !important;
+                margin-bottom: 0.5rem !important;
+            }
+            .sidebar-toggle {
+                left: 0.25rem;
+                top: 0.5rem;
+                padding: 0.3rem 0.5rem;
+            }
+            .sidebar-toggle i {
+                font-size: 1rem !important;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Sidebar Toggle Button -->
+    <button id="sidebarToggleBtn" class="btn btn-secondary sidebar-toggle" type="button" data-bs-toggle="offcanvas" data-bs-target="#sidebarMenu" aria-controls="sidebarMenu">
+    <i class="bi bi-list" style="font-size: 1.5rem;"></i>
+    </button>
+
+    <!-- Sidebar Offcanvas -->
+    <div class="offcanvas offcanvas-start bg-dark text-white" tabindex="-1" id="sidebarMenu" aria-labelledby="sidebarMenuLabel">
+        <div class="offcanvas-header">
+            <h5 class="offcanvas-title" id="sidebarMenuLabel">Menu</h5>
+            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="offcanvas" aria-label="Close"></button>
+        </div>
+        <div class="offcanvas-body">
+            <ul class="nav flex-column">
+                <li class="nav-item">
+                    <a class="nav-link text-white" href="/">Home</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link text-white" href="violations.html">Violators</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link text-white" href="settings.html">Configure Violation Time</a>
+                </li>
+            </ul>
+        </div>
+    </div>
+
+    <div class="container">
+        <h1 class="text-center text-dark my-4" style="font-weight: bold;">
+            Illegal Parking Detection - Live
+        </h1>
+        {% if notif %}
+        <div class="alert alert-success alert-dismissible fade show mt-3" role="alert">
+            {{ notif }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+        {% endif %}
+        <div class="video-outer">
+            <div class="video-container" id="videoContainer">
+                <div class="camera-frame-wrapper">
+                    <span class="camera-label">CCTV 1</span>
+                    <div class="video-frame-container">
+                        <img src="{{ url_for('video_feed_c1') }}" class="video-frame" alt="CCTV 1 Feed" id="liveVideoC1">
+                        <div class="reconnecting-overlay" id="reconnectingOverlayC1">
+                            <div class="reconnecting-spinner">
+                                <div class="spinner-border" role="status"></div>
+                                <span>Reconnecting...</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="camera-frame-wrapper">
+                    <span class="camera-label">CCTV 2</span>
+                    <div class="video-frame-container">
+                        <img src="{{ url_for('video_feed_c2') }}" class="video-frame" alt="CCTV 2 Feed" id="liveVideoC2">
+                        <div class="reconnecting-overlay" id="reconnectingOverlayC2">
+                            <div class="reconnecting-spinner">
+                                <div class="spinner-border" role="status"></div>
+                                <span>Reconnecting...</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Bootstrap JS Bundle CDN (optional, for future interactivity) -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Hide sidebar toggle button when sidebar is open, show when closed
+        const sidebar = document.getElementById('sidebarMenu');
+        const toggleBtn = document.getElementById('sidebarToggleBtn');
+        sidebar.addEventListener('show.bs.offcanvas', function () {
+            toggleBtn.style.display = 'none';
+        });
+        sidebar.addEventListener('hidden.bs.offcanvas', function () {
+            toggleBtn.style.display = '';
+        });
+
+        const overlayC1 = document.getElementById('reconnectingOverlayC1');
+        const overlayC2 = document.getElementById('reconnectingOverlayC2');
+        const liveVideoC1 = document.getElementById('liveVideoC1');
+        const liveVideoC2 = document.getElementById('liveVideoC2');
+
+        // Track previous reconnecting state to avoid unnecessary class toggling (prevents flicker)
+        let prevC1 = null, prevC2 = null;
+
+        async function checkCameraStatus() {
+            try {
+                const res = await fetch('/api/camera_status');
+                const status = await res.json();
+
+                if (prevC1 !== status.Camera_1.reconnecting) {
+                    overlayC1.classList.toggle('active', status.Camera_1.reconnecting);
+                    liveVideoC1.style.filter = status.Camera_1.reconnecting ? 'blur(6px) grayscale(0.4)' : '';
+                    prevC1 = status.Camera_1.reconnecting;
+                }
+                if (prevC2 !== status.Camera_2.reconnecting) {
+                    overlayC2.classList.toggle('active', status.Camera_2.reconnecting);
+                    liveVideoC2.style.filter = status.Camera_2.reconnecting ? 'blur(6px) grayscale(0.4)' : '';
+                    prevC2 = status.Camera_2.reconnecting;
+                }
+            } catch (e) {
+                // On error, show overlays for both as fallback
+                overlayC1.classList.add('active');
+                overlayC2.classList.add('active');
+                liveVideoC1.style.filter = 'blur(6px) grayscale(0.4)';
+                liveVideoC2.style.filter = 'blur(6px) grayscale(0.4)';
+                prevC1 = prevC2 = true;
+            }
+        }
+        setInterval(checkCameraStatus, 1200);
+
+        // Add this function to reload the video feeds (force refresh)
+        function reloadVideoFeeds() {
+            const liveVideoC1 = document.getElementById('liveVideoC1');
+            const liveVideoC2 = document.getElementById('liveVideoC2');
+            // Add a timestamp to force reload
+            liveVideoC1.src = "{{ url_for('video_feed_c1') }}" + "?t=" + Date.now();
+            liveVideoC2.src = "{{ url_for('video_feed_c2') }}" + "?t=" + Date.now();
+        }
+
+        // Listen for zone changes via localStorage event (from settings.html)
+        window.addEventListener('storage', function(e) {
+            if (e.key === 'zoneChanged' && e.newValue === '1') {
+                reloadVideoFeeds();
+                // Reset the flag
+                localStorage.setItem('zoneChanged', '0');
+            }
+        });
+    </script>
+</body>
+</html>

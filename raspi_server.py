@@ -12,9 +12,10 @@ import datetime
 import importlib
 from app_detect import detect, upload_event_to_cloud
 
+# --- Flask app ---
 app = Flask(__name__)
 
-# --- Setup Logging & Folders ---
+# --- Logging & directories ---
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("PiCameraServer")
 if not os.path.exists(config.SAVE_DIR):
@@ -22,7 +23,7 @@ if not os.path.exists(config.SAVE_DIR):
 
 CLASS_NAMES = {0: "PERSON", 2: "CAR", 3: "MOTORCYCLE", 5: "BUS", 7: "TRUCK"}
 
-# --- Root route for health & info ---
+# --- Root route ---
 @app.route("/")
 def index():
     return jsonify({
@@ -37,7 +38,7 @@ def index():
         ]
     })
 
-# --- Tracking Logic ---
+# --- Tracking ---
 class ByteTrackLite:
     def __init__(self):
         self.tracked_objects = {}
@@ -74,6 +75,7 @@ class ByteTrackLite:
         self.tracked_objects = new_tracks
         return {k: v for k, v in new_tracks.items() if v['last_seen'] == self.frame_count}
 
+# --- Parking monitor ---
 class ParkingMonitor:
     def __init__(self):
         self.trackers = {"Camera_1": ByteTrackLite(), "Camera_2": ByteTrackLite()}
@@ -134,6 +136,7 @@ class ParkingMonitor:
         }
         upload_event_to_cloud(cam, frame, meta)
 
+# --- Stream handler ---
 class Stream:
     def __init__(self, url):
         self.url = url
@@ -174,7 +177,7 @@ class Stream:
     def reconnect(self):
         self.reconnect_event.set()
 
-# --- Initialize monitoring ---
+# --- Initialize ---
 monitor = ParkingMonitor()
 c1, c2 = Stream(config.CAM1_URL), Stream(config.CAM2_URL)
 latest_processed = {"Camera_1": None, "Camera_2": None}
@@ -231,7 +234,6 @@ def health():
 
 @app.route('/detect', methods=['POST'])
 def detect_endpoint():
-    # Accepts either a file upload or a base64-encoded image
     if 'image' in request.files:
         img = decode_image(request.files['image'])
     else:

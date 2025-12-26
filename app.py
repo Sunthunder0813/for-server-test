@@ -71,14 +71,19 @@ if not os.path.exists(blank_frame_path):
     import numpy as np
     cv2.imwrite(blank_frame_path, np.zeros((360,640,3), dtype=np.uint8))
 
-def gen(camera):
+def gen(camera, cam_name):
     blank_frame = cv2.imread(blank_frame_path)
     while True:
-        ret, frame = camera.read()
-        if not ret:
-            frame = blank_frame
+        if not camera.isOpened():
+            frame = blank_frame.copy()
+            cv2.putText(frame, f"{cam_name} OFFLINE", (160, 180), 0, 1.5, (0,0,255), 3)
         else:
-            frame = cv2.resize(frame, (640,360))
+            ret, frame = camera.read()
+            if not ret:
+                frame = blank_frame.copy()
+                cv2.putText(frame, f"{cam_name} OFFLINE", (160, 180), 0, 1.5, (0,0,255), 3)
+            else:
+                frame = cv2.resize(frame, (640,360))
         ret, jpeg = cv2.imencode('.jpg', frame)
         if not ret:
             continue
@@ -145,11 +150,11 @@ def ping():
 
 @app.route('/video_feed_c1')
 def video_feed_c1():
-    return Response(gen(camera_1), mimetype='multipart/x-mixed-replace; boundary=frame')
+    return Response(gen(camera_1, "Camera_1"), mimetype='multipart/x-mixed-replace; boundary=frame')
 
 @app.route('/video_feed_c2')
 def video_feed_c2():
-    return Response(gen(camera_2), mimetype='multipart/x-mixed-replace; boundary=frame')
+    return Response(gen(camera_2, "Camera_2"), mimetype='multipart/x-mixed-replace; boundary=frame')
 
 @app.route('/api/camera_status')
 def camera_status():

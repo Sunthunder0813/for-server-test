@@ -6,16 +6,16 @@ import traceback
 from flask import Flask, render_template, jsonify, request, make_response, Response
 from datetime import datetime
 
-# Logging setup
+# Logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("ParkingApp")
 
 app = Flask(__name__)
 
-# --- In-memory storage for violation events ---
+# --- In-memory storage for events ---
 EVENTS = []
 
-# --- Load configuration ---
+# --- Load config ---
 import config
 
 def get_current_settings():
@@ -26,11 +26,11 @@ def get_current_settings():
     }
 
 def update_config_py(new_settings):
-    import re
-    import json as pyjson
+    import re, json as pyjson
     config_path = os.path.join(os.path.dirname(__file__), "config.py")
     with open(config_path, "r") as f:
         lines = f.readlines()
+
     def replace_line(key, value):
         pattern = re.compile(rf"^{key}\s*=\s*.*$")
         for i, line in enumerate(lines):
@@ -40,7 +40,6 @@ def update_config_py(new_settings):
                 else:
                     lines[i] = f"{key} = {value}\n"
                 return
-        # Key not found, append
         lines.append(f"{key} = {pyjson.dumps(value) if key=='PARKING_ZONES' else value}\n")
 
     replace_line("VIOLATION_TIME_THRESHOLD", new_settings.get("VIOLATION_TIME_THRESHOLD", getattr(config, "VIOLATION_TIME_THRESHOLD", 10)))
@@ -60,16 +59,24 @@ def update_config_py(new_settings):
         f.writelines(lines)
     importlib.reload(config)
 
-# --- Camera Setup ---
-# Adjust camera indices as needed for your system
+# --- Camera setup ---
 camera_1 = cv2.VideoCapture(0)
 camera_2 = cv2.VideoCapture(1)
 
+# Fallback blank frame if camera fails
+blank_frame_path = "blank.jpg"
+if not os.path.exists(blank_frame_path):
+    import numpy as np
+    cv2.imwrite(blank_frame_path, np.zeros((360,640,3), dtype=np.uint8))
+
 def gen(camera):
+    blank_frame = cv2.imread(blank_frame_path)
     while True:
         ret, frame = camera.read()
         if not ret:
-            continue
+            frame = blank_frame
+        else:
+            frame = cv2.resize(frame, (640,360))
         ret, jpeg = cv2.imencode('.jpg', frame)
         if not ret:
             continue
@@ -112,18 +119,18 @@ def camera_status():
         logger.error(f"Error checking camera status: {e}")
         return jsonify({"success": False, "error": str(e)}), 500
 
-@app.route('/api/settings', methods=['GET', 'POST'])
+@app.route('/api/settings', methods=['GET','POST'])
 def api_settings():
-    if request.method == 'POST':
+    if request.method=='POST':
         update_config_py(request.get_json())
         return jsonify({"success": True})
     return jsonify(get_current_settings())
 
 @app.route('/api/raspi_ip')
 def raspi_ip():
-    raspi_ip = os.environ.get("RASPI_IP", "192.168.18.32")
-    raspi_port = os.environ.get("RASPI_PORT", "5000")
-    return jsonify({"ip": raspi_ip, "port": raspi_port})
+    raspi_ip = os.environ.get("RASPI_IP","192.168.18.32")
+    raspi_port = os.environ.get("RASPI_PORT","5000")
+    return jsonify({"ip": raspi_ip,"port":raspi_port})
 
 @app.route('/api/upload_event', methods=['POST'])
 def upload_event():
@@ -167,6 +174,6 @@ def handle_exception(e):
     return make_response("Internal Server Error", 500)
 
 # --- Main ---
-if __name__ == "__main__":
-    port = int(os.environ.get("PORT", 5000))
+if __name__=="__main__":
+    port = int(os.environ.get("PORT",5000))
     app.run(host='0.0.0.0', port=port, threaded=True)

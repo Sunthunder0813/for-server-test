@@ -11,6 +11,8 @@ logger = logging.getLogger("ParkingApp")
 
 # Try to determine if we should use remote detection
 USE_REMOTE_DETECTION = os.environ.get("USE_REMOTE_DETECTION", None)
+# Force local detection on the Pi
+USE_REMOTE_DETECTION = False
 RASPI_URL = os.environ.get("RASPI_URL", "http://192.168.18.32:5000/detect")
 CLOUD_URL = os.environ.get("CLOUD_URL", "https://web-production-787ca.up.railway.app/api/upload_event")
 

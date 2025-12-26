@@ -7,7 +7,9 @@ import threading
 import time
 import os
 import logging
-from flask import Flask, request, jsonify, Response
+import subprocess
+import re
+from flask import Flask, request, jsonify, Response, render_template_string
 import config
 from app_detect import detect, upload_event_to_cloud
 import signal
@@ -23,20 +25,38 @@ if not os.path.exists(config.SAVE_DIR):
 
 CLASS_NAMES = {0: "PERSON", 2: "CAR", 3: "MOTORCYCLE", 5: "BUS", 7: "TRUCK"}
 
-# --- Root route ---
+# --- Start Cloudflare Tunnel ---
+def start_cloudflared(port=5000):
+    """Start cloudflared tunnel and return public URL."""
+    process = subprocess.Popen(
+        ["cloudflared", "tunnel", "--url", f"http://localhost:{port}"],
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
+        text=True
+    )
+    url = None
+    for line in iter(process.stdout.readline, ''):
+        print(line.strip())
+        match = re.search(r"https://[a-z0-9\-]+\.trycloudflare\.com", line)
+        if match:
+            url = match.group(0)
+            break
+    if not url:
+        raise RuntimeError("Failed to start cloudflared tunnel")
+    print(f"Cloudflared tunnel running at: {url}")
+    return process, url
+
+# --- Root route serving index.html ---
+INDEX_HTML = open("index.html").read()  # make sure index.html exists in same folder
+
 @app.route("/")
 def index():
-    return jsonify({
-        "service": "Raspberry Pi Parking Monitor",
-        "status": "running",
-        "endpoints": [
-            "/video_feed_c1",
-            "/video_feed_c2",
-            "/api/camera_status",
-            "/api/health",
-            "/detect"
-        ]
-    })
+    public_url = app.config.get("PUBLIC_URL", "")
+    html_with_url = INDEX_HTML.replace(
+        'const RASPI_BASE = "https://educated-contest-certain-eau.trycloudflare.com";',
+        f'const RASPI_BASE = "{public_url}";'
+    )
+    return render_template_string(html_with_url)
 
 # --- Simple Tracker ---
 class ByteTrackLite:
@@ -94,7 +114,7 @@ class ParkingMonitor:
             x1, y1, x2, y2 = map(int, d['box'])
             label = CLASS_NAMES.get(d['cls'], "OBJ")
             center = ((x1+x2)//2, (y1+y2)//2)
-            if d['cls'] == 0:  # person, skip for violation
+            if d['cls'] == 0:
                 cv2.rectangle(frame, (x1, y1), (x2, y2), (255, 255, 0), 1)
                 continue
             in_zone = cv2.pointPolygonTest(self.zones[name], center, False) >= 0
@@ -272,5 +292,13 @@ signal.signal(signal.SIGTERM, shutdown)
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 5000))
     print(f"Starting Flask on 0.0.0.0:{port}")
-    print("Expose this server via Cloudflare Tunnel: cloudflared tunnel --url http://localhost:5000")
+
+    # Start cloudflared automatically
+    try:
+        cf_proc, public_url = start_cloudflared(port)
+        app.config["PUBLIC_URL"] = public_url
+    except Exception as e:
+        print("Failed to start Cloudflare Tunnel:", e)
+        app.config["PUBLIC_URL"] = ""
+
     app.run(host='0.0.0.0', port=port, threaded=True)

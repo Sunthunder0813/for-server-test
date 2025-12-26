@@ -106,17 +106,21 @@ def start_cloudflared(port=5000):
     print(f"Cloudflared tunnel running at: {url}")
     return process, url
 
+# --- Store latest Pi public URL in memory ---
+PI_PUBLIC_URL = ""
+
+@app.route('/api/set_pi_url', methods=['POST'])
+def set_pi_url():
+    global PI_PUBLIC_URL
+    data = request.get_json(force=True)
+    PI_PUBLIC_URL = data.get("public_url", "")
+    return jsonify({"success": True, "public_url": PI_PUBLIC_URL})
+
 # --- Routes ---
 @app.route('/')
 def index():
-    public_url = app.config.get("PUBLIC_URL", "")
-    index_html = open("templates/index.html").read()
-    # Inject dynamic RASPI_BASE URL
-    html_with_url = index_html.replace(
-        'const RASPI_BASE = "https://educated-contest-certain-eau.trycloudflare.com";',
-        f'const RASPI_BASE = "{public_url}";'
-    )
-    return render_template_string(html_with_url)
+    # Inject the latest Pi public URL if available
+    return render_template('index.html', public_url=PI_PUBLIC_URL)
 
 @app.route('/settings.html')
 def settings_page():

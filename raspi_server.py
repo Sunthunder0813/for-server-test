@@ -8,7 +8,8 @@ import os
 import logging
 import subprocess
 import re
-from flask import Flask, request, jsonify, Response, render_template_string
+import requests
+from flask import Flask, request, jsonify, Response, render_template_string, render_template
 import config
 from app_detect import detect, upload_event_to_cloud
 import signal
@@ -268,6 +269,17 @@ def decode_image(data):
         return cv2.imdecode(img_array, cv2.IMREAD_COLOR)
     return None
 
+@app.route('/')
+def index():
+    public_url = app.config.get("PUBLIC_URL", "")
+    index_html = open("templates/index.html").read()
+    # Inject dynamic RASPI_BASE URL
+    html_with_url = index_html.replace(
+        'const RASPI_BASE = "{{ public_url }}";',
+        f'const RASPI_BASE = "{public_url}";'
+    )
+    return render_template_string(html_with_url)
+
 # --- Graceful shutdown ---
 def shutdown(sig, frame):
     print("Shutting down...")
@@ -284,6 +296,19 @@ if __name__ == '__main__':
     try:
         cf_proc, public_url = start_cloudflared(port)
         app.config["PUBLIC_URL"] = public_url
+
+        # --- Notify Railway app of the public URL ---
+        RAILWAY_API_URL = os.environ.get("RAILWAY_API_URL", "https://web-production-787ca.up.railway.app")
+        try:
+            resp = requests.post(
+                f"{RAILWAY_API_URL}/api/set_pi_url",
+                json={"public_url": public_url},
+                timeout=5
+            )
+            print("Posted public URL to Railway:", resp.status_code, resp.text)
+        except Exception as e:
+            print("Failed to notify Railway app:", e)
+
     except Exception as e:
         print("Failed to start Cloudflare Tunnel:", e)
         app.config["PUBLIC_URL"] = ""

@@ -199,18 +199,23 @@ threading.Thread(target=processing_worker, args=("Camera_1", c1), daemon=True).s
 threading.Thread(target=processing_worker, args=("Camera_2", c2), daemon=True).start()
 
 def gen_single(stream, cam_name):
-    FRAME_INTERVAL = 1.0 / 12  # ~12 FPS, adjust as needed
+    FRAME_INTERVAL = 1.0 / 10  # 10 FPS for cloud streaming
+    JPEG_QUALITY = 80  # Lower quality for smoother streaming (range: 0-100)
+    last_frame_time = 0
     while True:
         start_time = time.time()
         with proc_lock:
             frame = latest_processed.get(cam_name)
-        if frame is None: frame = stream.get_frame()
+        if frame is None:
+            frame = stream.get_frame()
         if frame is not None:
             frame = cv2.resize(frame, (1280, 720))
         else:
             frame = np.zeros((720, 1280, 3), dtype=np.uint8)
             cv2.putText(frame, f"{cam_name} OFFLINE", (400, 360), 0, 1.5, (0,0,255), 3)
-        _, buf = cv2.imencode('.jpg', frame)
+        # Use JPEG quality to reduce bandwidth and smoothen streaming
+        encode_param = [int(cv2.IMWRITE_JPEG_QUALITY), JPEG_QUALITY]
+        _, buf = cv2.imencode('.jpg', frame, encode_param)
         yield (b'--frame\r\nContent-Type: image/jpeg\r\n\r\n' + buf.tobytes() + b'\r\n')
         elapsed = time.time() - start_time
         sleep_time = max(0, FRAME_INTERVAL - elapsed)

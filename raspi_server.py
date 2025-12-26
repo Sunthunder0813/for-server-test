@@ -11,6 +11,8 @@ import config
 import datetime
 import importlib
 from app_detect import detect, upload_event_to_cloud
+import signal
+import requests
 
 # --- Flask app ---
 app = Flask(__name__)
@@ -266,4 +268,40 @@ def decode_image(data):
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 5000))
     print(f"Starting Flask on 0.0.0.0:{port}")
+
+    ngrok_process = None
+    try:
+        from pyngrok import ngrok
+
+        ngrok_process = ngrok.connect(port, bind_tls=True)
+        print("Starting ngrok tunnel...")
+
+        # Wait for public URL
+        public_url = None
+        for _ in range(10):
+            try:
+                tunnels = requests.get("http://127.0.0.1:4040/api/tunnels").json()
+                public_url = tunnels['tunnels'][0]['public_url']
+                if public_url:
+                    break
+            except Exception:
+                time.sleep(0.5)
+
+        if public_url:
+            print("ngrok tunnel running at:", public_url)
+        else:
+            print("Failed to get ngrok public URL. Check ngrok status.")
+    except ImportError:
+        print("pyngrok not installed. Skipping ngrok tunnel.")
+
+    def cleanup(signal_num, frame):
+        print("\nShutting down...")
+        if ngrok_process:
+            ngrok.disconnect(ngrok_process)
+            ngrok.kill()
+        os._exit(0)
+
+    signal.signal(signal.SIGINT, cleanup)
+    signal.signal(signal.SIGTERM, cleanup)
+
     app.run(host='0.0.0.0', port=port, threaded=True)

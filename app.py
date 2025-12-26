@@ -5,8 +5,9 @@ import importlib
 import traceback
 import subprocess
 import re
-from flask import Flask, render_template, jsonify, request, make_response, Response, render_template_string
+from flask import Flask, render_template, jsonify, request, make_response, Response, render_template_string, stream_with_context
 from datetime import datetime
+import time
 
 # Logging
 logging.basicConfig(level=logging.INFO)
@@ -65,6 +66,13 @@ def update_config_py(new_settings):
 camera_1 = cv2.VideoCapture(0)
 camera_2 = cv2.VideoCapture(1)
 
+# --- Camera status tracking ---
+CAMERA_STATUS = {
+    "Camera_1": {"last_frame_time": 0, "online": False},
+    "Camera_2": {"last_frame_time": 0, "online": False}
+}
+CAMERA_TIMEOUT = 5  # seconds
+
 # Fallback blank frame if camera fails
 blank_frame_path = "blank.png"
 if not os.path.exists(blank_frame_path):
@@ -77,13 +85,17 @@ def gen(camera, cam_name):
         if not camera.isOpened():
             frame = blank_frame.copy()
             cv2.putText(frame, f"{cam_name} OFFLINE", (160, 180), 0, 1.5, (0,0,255), 3)
+            CAMERA_STATUS[cam_name]["online"] = False
         else:
             ret, frame = camera.read()
             if not ret:
                 frame = blank_frame.copy()
                 cv2.putText(frame, f"{cam_name} OFFLINE", (160, 180), 0, 1.5, (0,0,255), 3)
+                CAMERA_STATUS[cam_name]["online"] = False
             else:
                 frame = cv2.resize(frame, (640,360))
+                CAMERA_STATUS[cam_name]["last_frame_time"] = time.time()
+                CAMERA_STATUS[cam_name]["online"] = True
         ret, jpeg = cv2.imencode('.jpg', frame)
         if not ret:
             continue
@@ -150,25 +162,39 @@ def ping():
 
 @app.route('/video_feed_c1')
 def video_feed_c1():
-    return Response(gen(camera_1, "Camera_1"), mimetype='multipart/x-mixed-replace; boundary=frame')
+    if not camera_1.isOpened():
+        return Response("Camera 1 not available", status=503, mimetype='text/plain')
+    logger.info(f'{request.remote_addr} - - [{datetime.datetime.now().strftime("%d/%b/%Y %H:%M:%S")}] "GET /video_feed_c1{request.query_string.decode() and "?" + request.query_string.decode() or ""} HTTP/1.1" 200 -')
+    return Response(
+        stream_with_context(gen(camera_1, "Camera_1")),
+        mimetype='multipart/x-mixed-replace; boundary=frame',
+        headers={"Cache-Control": "no-store"}
+    )
 
 @app.route('/video_feed_c2')
 def video_feed_c2():
-    return Response(gen(camera_2, "Camera_2"), mimetype='multipart/x-mixed-replace; boundary=frame')
+    if not camera_2.isOpened():
+        return Response("Camera 2 not available", status=503, mimetype='text/plain')
+    logger.info(f'{request.remote_addr} - - [{datetime.datetime.now().strftime("%d/%b/%Y %H:%M:%S")}] "GET /video_feed_c2{request.query_string.decode() and "?" + request.query_string.decode() or ""} HTTP/1.1" 200 -')
+    return Response(
+        stream_with_context(gen(camera_2, "Camera_2")),
+        mimetype='multipart/x-mixed-replace; boundary=frame',
+        headers={"Cache-Control": "no-store"}
+    )
 
 @app.route('/api/camera_status')
 def camera_status():
     try:
-        return jsonify({
-            "Camera_1": {
-                "reconnecting": not camera_1.isOpened(),
-                "online": camera_1.isOpened()
-            },
-            "Camera_2": {
-                "reconnecting": not camera_2.isOpened(),
-                "online": camera_2.isOpened()
+        now = time.time()
+        status = {}
+        for cam, cam_obj in [("Camera_1", camera_1), ("Camera_2", camera_2)]:
+            # If last frame was sent recently, consider online
+            online = CAMERA_STATUS[cam]["online"] and (now - CAMERA_STATUS[cam]["last_frame_time"] < CAMERA_TIMEOUT)
+            status[cam] = {
+                "reconnecting": not online,
+                "online": online
             }
-        })
+        return jsonify(status)
     except Exception as e:
         logger.error(f"Error checking camera status: {e}")
         return jsonify({"success": False, "error": str(e)}), 500

@@ -66,7 +66,7 @@ camera_1 = cv2.VideoCapture(0)
 camera_2 = cv2.VideoCapture(1)
 
 # Fallback blank frame if camera fails
-blank_frame_path = "blank.jpg"
+blank_frame_path = "blank.png"
 if not os.path.exists(blank_frame_path):
     import numpy as np
     cv2.imwrite(blank_frame_path, np.zeros((360,640,3), dtype=np.uint8))

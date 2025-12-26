@@ -120,6 +120,11 @@ def set_pi_url():
 def get_pi_url():
     return jsonify({"public_url": PI_PUBLIC_URL})
 
+@app.route('/api/pi_public_url')
+def pi_public_url():
+    logger.info(f"Pi public URL requested: {PI_PUBLIC_URL}")
+    return jsonify({"public_url": PI_PUBLIC_URL})
+
 # --- Routes ---
 @app.route('/')
 def index():

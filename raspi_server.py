@@ -190,12 +190,16 @@ def processing_worker(cam_name, stream):
     while True:
         frame = stream.get_frame()
         if frame is not None and stream.is_online():
-            res = detect([frame])
-            if res:
-                frame_disp = frame.copy()
-                monitor.process(cam_name, res[0], frame_disp)
-                with proc_lock:
-                    latest_processed[cam_name] = frame_disp
+            try:
+                # --- Direct detection call, no HTTP ---
+                res = detect([frame])
+                if res:
+                    frame_disp = frame.copy()
+                    monitor.process(cam_name, res[0], frame_disp)
+                    with proc_lock:
+                        latest_processed[cam_name] = frame_disp
+            except Exception as e:
+                logger.error(f"Detection error: {e}")
         time.sleep(0.1)
 
 threading.Thread(target=processing_worker, args=("Camera_1", c1), daemon=True).start()
@@ -237,6 +241,7 @@ def health():
 
 @app.route('/detect', methods=['POST'])
 def detect_endpoint():
+    # Decode image directly, no HTTP self-call
     if 'image' in request.files:
         img = decode_image(request.files['image'])
     else:
@@ -246,17 +251,19 @@ def detect_endpoint():
     if img is None:
         return jsonify({'success': False, 'error': 'No image provided'}), 400
 
-    results = detect([img])
-    if not results:
-        return jsonify({'success': False, 'error': 'Detection failed'}), 500
-
-    res = results[0]
-    return jsonify({
-        'success': True,
-        'boxes': res.xyxy.tolist(),
-        'confidences': res.conf.tolist(),
-        'classes': res.cls.tolist()
-    })
+    try:
+        results = detect([img])
+        if not results:
+            raise RuntimeError("Detection returned no results")
+        res = results[0]
+        return jsonify({
+            'success': True,
+            'boxes': res.xyxy.tolist(),
+            'confidences': res.conf.tolist(),
+            'classes': res.cls.tolist()
+        })
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
 
 def decode_image(data):
     if isinstance(data, str):
@@ -269,15 +276,14 @@ def decode_image(data):
         return cv2.imdecode(img_array, cv2.IMREAD_COLOR)
     return None
 
-# --- Start server ---
+# --- Start server with optional ngrok ---
 def start_ngrok(port=5000, timeout=10):
     if not ngrok:
         return None, None
     tunnel = ngrok.connect(port, bind_tls=True)
     public_url = None
-
-    api_url = "http://127.0.0.1:4040/api/tunnels"
     import requests
+    api_url = "http://127.0.0.1:4040/api/tunnels"
     for _ in range(timeout*2):
         try:
             tunnels = requests.get(api_url, timeout=1).json()
@@ -286,7 +292,6 @@ def start_ngrok(port=5000, timeout=10):
                 break
         except Exception:
             time.sleep(0.5)
-
     if not public_url:
         raise RuntimeError("Failed to get ngrok public URL")
     print(f"ngrok tunnel running at: {public_url}")
@@ -305,9 +310,12 @@ if __name__ == '__main__':
     # Graceful shutdown
     def shutdown(sig, frame):
         print("Shutting down...")
-        if ngrok_tunnel:
-            ngrok.disconnect(ngrok_tunnel.public_url)
-            ngrok.kill()
+        try:
+            if ngrok_tunnel:
+                ngrok.disconnect(ngrok_tunnel.public_url)
+                ngrok.kill()
+        except Exception:
+            pass
         os._exit(0)
     signal.signal(signal.SIGINT, shutdown)
     signal.signal(signal.SIGTERM, shutdown)

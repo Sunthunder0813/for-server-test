@@ -47,7 +47,7 @@ def start_cloudflared(port=5000):
     return process, url
 
 # --- Root route serving index.html ---
-INDEX_HTML = open("index.html").read()  # make sure index.html exists in same folder
+INDEX_HTML = open("templates/index.html").read()  # make sure index.html exists in same folder
 
 @app.route("/")
 def index():

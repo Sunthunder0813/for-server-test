@@ -106,10 +106,30 @@ def start_cloudflared(port=5000):
     print(f"Cloudflared tunnel running at: {url}")
     return process, url
 
+# --- Store latest Pi public URL in memory ---
+PI_PUBLIC_URL = ""
+
+@app.route('/api/set_pi_url', methods=['POST'])
+def set_pi_url():
+    global PI_PUBLIC_URL
+    data = request.get_json(force=True)
+    PI_PUBLIC_URL = data.get("public_url", "")
+    return jsonify({"success": True, "public_url": PI_PUBLIC_URL})
+
+@app.route('/api/get_pi_url')
+def get_pi_url():
+    return jsonify({"public_url": PI_PUBLIC_URL})
+
+@app.route('/api/pi_public_url')
+def pi_public_url():
+    logger.info(f"Pi public URL requested: {PI_PUBLIC_URL}")
+    return jsonify({"public_url": PI_PUBLIC_URL})
+
 # --- Routes ---
 @app.route('/')
 def index():
-    return render_template('index.html')
+    # Inject the latest Pi public URL if available
+    return render_template('index.html', public_url=PI_PUBLIC_URL)
 
 @app.route('/settings.html')
 def settings_page():

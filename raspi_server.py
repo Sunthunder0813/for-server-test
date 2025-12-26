@@ -12,7 +12,12 @@ import datetime
 import importlib
 from app_detect import detect, upload_event_to_cloud
 import signal
-import requests
+
+# Optional: pyngrok for public tunnel
+try:
+    from pyngrok import ngrok
+except ImportError:
+    ngrok = None
 
 # --- Flask app ---
 app = Flask(__name__)
@@ -265,43 +270,46 @@ def decode_image(data):
     return None
 
 # --- Start server ---
+def start_ngrok(port=5000, timeout=10):
+    if not ngrok:
+        return None, None
+    tunnel = ngrok.connect(port, bind_tls=True)
+    public_url = None
+
+    api_url = "http://127.0.0.1:4040/api/tunnels"
+    import requests
+    for _ in range(timeout*2):
+        try:
+            tunnels = requests.get(api_url, timeout=1).json()
+            if tunnels['tunnels']:
+                public_url = tunnels['tunnels'][0]['public_url']
+                break
+        except Exception:
+            time.sleep(0.5)
+
+    if not public_url:
+        raise RuntimeError("Failed to get ngrok public URL")
+    print(f"ngrok tunnel running at: {public_url}")
+    return tunnel, public_url
+
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 5000))
     print(f"Starting Flask on 0.0.0.0:{port}")
 
-    ngrok_process = None
+    ngrok_tunnel = None
     try:
-        from pyngrok import ngrok
+        ngrok_tunnel, public_url = start_ngrok(port)
+    except Exception as e:
+        print("ngrok tunnel failed:", e)
 
-        ngrok_process = ngrok.connect(port, bind_tls=True)
-        print("Starting ngrok tunnel...")
-
-        # Wait for public URL
-        public_url = None
-        for _ in range(10):
-            try:
-                tunnels = requests.get("http://127.0.0.1:4040/api/tunnels").json()
-                public_url = tunnels['tunnels'][0]['public_url']
-                if public_url:
-                    break
-            except Exception:
-                time.sleep(0.5)
-
-        if public_url:
-            print("ngrok tunnel running at:", public_url)
-        else:
-            print("Failed to get ngrok public URL. Check ngrok status.")
-    except ImportError:
-        print("pyngrok not installed. Skipping ngrok tunnel.")
-
-    def cleanup(signal_num, frame):
-        print("\nShutting down...")
-        if ngrok_process:
-            ngrok.disconnect(ngrok_process)
+    # Graceful shutdown
+    def shutdown(sig, frame):
+        print("Shutting down...")
+        if ngrok_tunnel:
+            ngrok.disconnect(ngrok_tunnel.public_url)
             ngrok.kill()
         os._exit(0)
-
-    signal.signal(signal.SIGINT, cleanup)
-    signal.signal(signal.SIGTERM, cleanup)
+    signal.signal(signal.SIGINT, shutdown)
+    signal.signal(signal.SIGTERM, shutdown)
 
     app.run(host='0.0.0.0', port=port, threaded=True)

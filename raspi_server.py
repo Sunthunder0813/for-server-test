@@ -9,15 +9,8 @@ import os
 import logging
 from flask import Flask, request, jsonify, Response
 import config
-import importlib
 from app_detect import detect, upload_event_to_cloud
 import signal
-
-# Optional: pyngrok for public tunnel
-try:
-    from pyngrok import ngrok
-except ImportError:
-    ngrok = None
 
 # --- Flask app ---
 app = Flask(__name__)
@@ -76,7 +69,6 @@ class ByteTrackLite:
             elif score >= config.DETECTION_THRESHOLD:
                 new_tracks[self.next_id] = {'box': box, 'cls': cid, 'last_seen': self.frame_count}
                 self.next_id += 1
-        # Keep objects recently seen
         for tid, t in self.tracked_objects.items():
             if self.frame_count - t['last_seen'] < self.buffer:
                 new_tracks[tid] = t
@@ -269,27 +261,6 @@ def decode_image(data):
         return cv2.imdecode(img_array, cv2.IMREAD_COLOR)
     return None
 
-# --- Start server with optional ngrok ---
-def start_ngrok(port=5000, timeout=10):
-    if not ngrok:
-        return None, None
-    tunnel = ngrok.connect(port, bind_tls=True)
-    public_url = None
-    import requests
-    api_url = "http://127.0.0.1:4040/api/tunnels"
-    for _ in range(timeout*2):
-        try:
-            tunnels = requests.get(api_url, timeout=1).json()
-            if tunnels['tunnels']:
-                public_url = tunnels['tunnels'][0]['public_url']
-                break
-        except Exception:
-            time.sleep(0.5)
-    if not public_url:
-        raise RuntimeError("Failed to get ngrok public URL")
-    print(f"ngrok tunnel running at: {public_url}")
-    return tunnel, public_url
-
 # --- Graceful shutdown ---
 def shutdown(sig, frame):
     print("Shutting down...")
@@ -301,9 +272,5 @@ signal.signal(signal.SIGTERM, shutdown)
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 5000))
     print(f"Starting Flask on 0.0.0.0:{port}")
-    ngrok_tunnel = None
-    try:
-        ngrok_tunnel, public_url = start_ngrok(port)
-    except Exception as e:
-        print("ngrok tunnel failed:", e)
+    print("Expose this server via Cloudflare Tunnel: cloudflared tunnel --url http://localhost:5000")
     app.run(host='0.0.0.0', port=port, threaded=True)

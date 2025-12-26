@@ -3,12 +3,16 @@ import cv2
 import threading
 import logging
 import os
+import requests
+import base64
+from datetime import datetime
 
 logger = logging.getLogger("ParkingApp")
 
 # Try to determine if we should use remote detection
 USE_REMOTE_DETECTION = os.environ.get("USE_REMOTE_DETECTION", None)
 RASPI_URL = os.environ.get("RASPI_URL", "http://192.168.18.32:5000/detect")
+CLOUD_URL = os.environ.get("CLOUD_URL", "https://your-cloud-domain/api/upload_event")
 
 if USE_REMOTE_DETECTION is None:
     # Try to import Hailo, if fails, use remote detection
@@ -82,9 +86,6 @@ if not USE_REMOTE_DETECTION:
             _detector = HailoDetector(config.MODEL_PATH)
         return _detector.run_detection(frames)
 else:
-    import requests
-    import base64
-
     class DetectionResult:
         def __init__(self, xyxy, confs, clss):
             self.xyxy = xyxy
@@ -110,3 +111,24 @@ else:
                 logger.error(f"Remote detection failed: {e}")
                 results.append(DetectionResult(np.array([]), np.array([]), np.array([])))
         return results
+
+def upload_event_to_cloud(camera_id, frame, meta=None):
+    """Uploads a violation event to the cloud."""
+    try:
+        _, buf = cv2.imencode('.jpg', frame)
+        img_b64 = base64.b64encode(buf).decode('utf-8')
+        payload = {
+            "camera_id": camera_id,
+            "timestamp": datetime.utcnow().isoformat(),
+            "image": img_b64,
+            "meta": meta or {}
+        }
+        resp = requests.post(CLOUD_URL, json=payload, timeout=10)
+        if resp.ok:
+            return True
+        else:
+            logger.error(f"Cloud upload failed: {resp.text}")
+            return False
+    except Exception as e:
+        logger.error(f"Exception in upload_event_to_cloud: {e}")
+        return False

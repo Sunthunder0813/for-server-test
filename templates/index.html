@@ -255,6 +255,7 @@
                 </div>
             </div>
         </div>
+        <div id="violationEvents" class="mt-4"></div>
     </div>
     <!-- Server Connection Status Banner -->
     <div id="serverStatusBanner"
@@ -390,8 +391,41 @@
             }
         }
 
+        // Fetch and display violation events from cloud
+        async function loadViolationEvents() {
+            try {
+                const res = await fetch('/api/events');
+                const events = await res.json();
+                const container = document.getElementById('violationEvents');
+                if (!events.length) {
+                    container.innerHTML = "<div class='alert alert-info'>No violations detected yet.</div>";
+                    return;
+                }
+                container.innerHTML = events.map(ev => `
+                    <div class="card mb-3">
+                        <div class="row g-0">
+                            <div class="col-md-4">
+                                <img src="${ev.image_url}" class="img-fluid rounded-start" alt="Violation">
+                            </div>
+                            <div class="col-md-8">
+                                <div class="card-body">
+                                    <h5 class="card-title">${ev.camera_id}</h5>
+                                    <p class="card-text"><small class="text-muted">${ev.timestamp}</small></p>
+                                    <pre style="font-size:0.9em;">${JSON.stringify(ev.meta, null, 2)}</pre>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `).join('');
+            } catch (e) {
+                document.getElementById('violationEvents').innerHTML = "<div class='alert alert-danger'>Failed to load events.</div>";
+            }
+        }
+
         window.onload = function() {
             fetchRaspiBase();
+            loadViolationEvents();
+            setInterval(loadViolationEvents, 10000); // Refresh every 10s
         };
     </script>
 </body>

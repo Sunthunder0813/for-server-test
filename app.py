@@ -1,14 +1,18 @@
 import os
 import logging
-from flask import Flask, render_template, jsonify, request, make_response
+from flask import Flask, render_template, jsonify, request, make_response, send_from_directory
 import config
 import importlib
 import traceback
+from datetime import datetime
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("ParkingApp")
 
 app = Flask(__name__)
+
+# In-memory event storage (replace with DB in production)
+EVENTS = []
 
 def get_current_settings():
     return {
@@ -98,6 +102,47 @@ def raspi_ip():
     # raspi_port is kept for compatibility, but frontend should ignore it for ngrok
     raspi_port = os.environ.get("RASPI_PORT", "5000")
     return jsonify({"ip": raspi_ip, "port": raspi_port})
+
+# --- CLOUD: Receive violation event from edge ---
+@app.route('/api/upload_event', methods=['POST'])
+def upload_event():
+    """
+    Receives: JSON with fields:
+      - camera_id
+      - timestamp
+      - image (base64-encoded)
+      - meta (optional: detection info)
+    """
+    try:
+        data = request.get_json(force=True)
+        camera_id = data.get("camera_id")
+        timestamp = data.get("timestamp", datetime.utcnow().isoformat())
+        image_b64 = data.get("image")
+        meta = data.get("meta", {})
+        # Save image to static/events/
+        if not os.path.exists("static/events"):
+            os.makedirs("static/events")
+        fname = f"{camera_id}_{timestamp.replace(':','-').replace('.','-')}.jpg"
+        img_path = os.path.join("static/events", fname)
+        import base64
+        with open(img_path, "wb") as f:
+            f.write(base64.b64decode(image_b64))
+        # Store event
+        EVENTS.append({
+            "camera_id": camera_id,
+            "timestamp": timestamp,
+            "image_url": f"/static/events/{fname}",
+            "meta": meta
+        })
+        return jsonify({"success": True})
+    except Exception as e:
+        logger.error(f"Upload event failed: {e}")
+        return jsonify({"success": False, "error": str(e)}), 500
+
+@app.route('/api/events')
+def api_events():
+    """Return all violation events (for dashboard/history)."""
+    return jsonify(EVENTS)
 
 @app.errorhandler(Exception)
 def handle_exception(e):

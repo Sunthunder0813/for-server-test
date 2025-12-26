@@ -18,15 +18,6 @@ USE_REMOTE_DETECTION = False
 RASPI_URL = os.environ.get("RASPI_URL", "http://192.168.18.32:5000/detect")
 CLOUD_URL = os.environ.get("CLOUD_URL", "https://web-production-787ca.up.railway.app/api/upload_event")
 
-if USE_REMOTE_DETECTION is None:
-    # Try to import Hailo, if fails, use remote detection
-    try:
-        USE_REMOTE_DETECTION = False
-    except ImportError:
-        USE_REMOTE_DETECTION = True
-else:
-    USE_REMOTE_DETECTION = USE_REMOTE_DETECTION == "1"
-
 if not USE_REMOTE_DETECTION:
     # All Hailo and config imports are only done here
     class DetectionResult:

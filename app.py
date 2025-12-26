@@ -204,7 +204,7 @@ def handle_exception(e):
     return make_response("Internal Server Error", 500)
 
 # --- Main ---
-if __name__=="__main__":
+if __name__=="__main__": 
     port = int(os.environ.get("PORT",5000))
 
     # Start cloudflared and get public URL

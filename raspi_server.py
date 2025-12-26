@@ -10,7 +10,7 @@ from flask import Flask, request, jsonify, Response
 import config
 import datetime
 import importlib
-from app_detect import detect
+from app_detect import detect, upload_event_to_cloud
 
 app = Flask(__name__)
 
@@ -114,6 +114,13 @@ class ParkingMonitor:
         if not os.path.exists(date_dir): os.makedirs(date_dir)
         path = os.path.join(date_dir, f"{cam}-{now.strftime('%H_%M_%S')}.jpg")
         cv2.imwrite(path, frame)
+        # Send violation event to cloud dashboard
+        meta = {
+            "tracker_id": tid,
+            "label": label,
+            "timestamp": now.isoformat()
+        }
+        upload_event_to_cloud(cam, frame, meta)
 
 class Stream:
     # ...existing code from app.py...

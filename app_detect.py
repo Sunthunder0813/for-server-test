@@ -84,32 +84,30 @@ if HAILO_AVAILABLE and not USE_REMOTE_DETECTION:
         return _detector.run_detection(frames)
 
 else:
-    # Remote or CPU fallback detection
+    # CPU fallback using YOLOv8
     import warnings
-    warnings.warn("Hailo detection unavailable, using remote detection fallback.")
+    warnings.warn("Hailo detection unavailable, using YOLOv8 CPU fallback.")
+    from ultralytics import YOLO
+
+    _model = YOLO(config.MODEL_PATH)  # Make sure MODEL_PATH points to .pt model (not .hef)
+    _lock = threading.Lock()
 
     def detect(frames):
         results = []
-        for frame in frames:
-            try:
-                _, buf = cv2.imencode('.jpg', frame)
-                img_b64 = base64.b64encode(buf).decode('utf-8')
-                if USE_REMOTE_DETECTION:
-                    resp = requests.post(RASPI_URL, json={'image': img_b64}, timeout=10)
-                    data = resp.json()
-                    if data.get('success'):
-                        xyxy = np.array(data['boxes'])
-                        conf = np.array(data['confidences'])
-                        clss = np.array(data['classes'])
-                        results.append(DetectionResult(xyxy, conf, clss))
+        with _lock:
+            for frame in frames:
+                try:
+                    res = _model(frame)[0]
+                    if hasattr(res, 'boxes') and len(res.boxes):
+                        xyxy = res.boxes.xyxy.cpu().numpy()
+                        conf = res.boxes.conf.cpu().numpy()
+                        clss = res.boxes.cls.cpu().numpy().astype(int)
                     else:
-                        results.append(DetectionResult(np.array([]), np.array([]), np.array([])))
-                else:
-                    # CPU fallback: return empty detections
+                        xyxy, conf, clss = np.array([]), np.array([]), np.array([])
+                    results.append(DetectionResult(xyxy, conf, clss))
+                except Exception as e:
+                    logger.error(f"YOLOv8 CPU detection failed: {e}")
                     results.append(DetectionResult(np.array([]), np.array([]), np.array([])))
-            except Exception as e:
-                logger.error(f"Remote detection failed: {e}")
-                results.append(DetectionResult(np.array([]), np.array([]), np.array([])))
         return results
 
 def upload_event_to_cloud(camera_id, frame, meta=None):

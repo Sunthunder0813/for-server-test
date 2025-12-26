@@ -30,7 +30,7 @@
             max-width: 700px;
             min-width: 250px;
             flex: 1 1 350px;
-            overflow: hidden; /* Ensure overlay doesn't spill outside */
+            overflow: hidden;
         }
         .video-frame-container {
             position: relative;
@@ -98,213 +98,83 @@
             50% { opacity: 0.5; }
             100% { opacity: 1; }
         }
-        /* Responsive Styles */
-        @media (max-width: 1200px) {
-            .camera-frame-wrapper {
-                max-width: 90vw;
-            }
-        }
-        @media (max-width: 1024px) {
-            .video-container {
-                min-height: 50vh;
-                padding: 0.5rem;
-                gap: 1rem;
-            }
-            .camera-frame-wrapper {
-                max-width: 100vw;
-            }
-        }
+        /* Responsive */
         @media (max-width: 900px) {
-            .video-container {
-                flex-direction: column;
-                gap: 1.5rem;
-            }
-            .camera-frame-wrapper {
-                max-width: 98vw;
-            }
-        }
-        @media (max-width: 768px) {
-            .container {
-                padding-left: 0.5rem;
-                padding-right: 0.5rem;
-            }
-            .video-container {
-                min-height: 40vh;
-                flex-direction: column;
-                padding: 0.5rem;
-                gap: 1rem;
-            }
-            .camera-frame-wrapper {
-                max-width: 100vw;
-            }
-            .video-frame {
-                width: 100% !important;
-                max-width: 100% !important;
-                height: auto !important;
-                margin: 0 auto;
-            }
-            h1 {
-                font-size: 1.3rem !important;
-                margin-top: 1rem !important;
-                margin-bottom: 1rem !important;
-            }
-            .sidebar-toggle {
-                left: 0.5rem;
-                top: 0.8rem;
-                padding: 0.4rem 0.6rem;
-            }
-        }
-        @media (max-width: 480px) {
-            .container {
-                padding-left: 0.25rem;
-                padding-right: 0.25rem;
-            }
-            .video-container {
-                min-height: 20vh;
-                flex-direction: column;
-                padding: 0.25rem;
-                gap: 0.5rem;
-            }
-            .camera-frame-wrapper {
-                max-width: 100vw;
-            }
-            .video-frame {
-                width: 100% !important;
-                max-width: 100% !important;
-                height: auto !important;
-                margin: 0 auto;
-            }
-            h1 {
-                font-size: 1rem !important;
-                margin-top: 0.5rem !important;
-                margin-bottom: 0.5rem !important;
-            }
-            .sidebar-toggle {
-                left: 0.25rem;
-                top: 0.5rem;
-                padding: 0.3rem 0.5rem;
-            }
-            .sidebar-toggle i {
-                font-size: 1rem !important;
-            }
+            .video-container { flex-direction: column; gap: 1.5rem; }
+            .camera-frame-wrapper { max-width: 98vw; }
+            .video-frame { width: 100% !important; height: auto !important; }
         }
     </style>
 </head>
 <body>
-    <!-- Sidebar Toggle Button -->
-    <button id="sidebarToggleBtn" class="btn btn-secondary sidebar-toggle" type="button" data-bs-toggle="offcanvas" data-bs-target="#sidebarMenu" aria-controls="sidebarMenu">
-    <i class="bi bi-list" style="font-size: 1.5rem;"></i>
-    </button>
-
-    <!-- Sidebar Offcanvas -->
-    <div class="offcanvas offcanvas-start bg-dark text-white" tabindex="-1" id="sidebarMenu" aria-labelledby="sidebarMenuLabel">
-        <div class="offcanvas-header">
-            <h5 class="offcanvas-title" id="sidebarMenuLabel">Menu</h5>
-            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="offcanvas" aria-label="Close"></button>
-        </div>
-        <div class="offcanvas-body">
-            <ul class="nav flex-column">
-                <li class="nav-item">
-                    <a class="nav-link text-white" href="/">Home</a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link text-white" href="violations.html">Violators</a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link text-white" href="settings.html">Configure Violation Time</a>
-                </li>
-            </ul>
-        </div>
-    </div>
-
     <div class="container">
         <h1 class="text-center text-dark my-4" style="font-weight: bold;">
             Illegal Parking Detection - Live
         </h1>
-        <!-- Add manual Pi IP override UI -->
-        <div class="mb-3 text-center">
-            <input type="text" id="manualRaspiIp" class="form-control d-inline-block" style="max-width:250px;display:inline-block;" placeholder="Manual Raspberry Pi IP (e.g. 192.168.18.32)">
-            <button class="btn btn-primary" onclick="setManualRaspiIp()">Set Pi IP</button>
-        </div>
-        {% if notif %}
-        <div class="alert alert-success alert-dismissible fade show mt-3" role="alert">
-            {{ notif }}
-            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-        </div>
-        {% endif %}
-        <div class="video-outer">
-            <div class="video-container" id="videoContainer">
-                <div class="camera-frame-wrapper">
-                    <span class="camera-label">CCTV 1</span>
-                    <div class="video-frame-container">
-                        <img src="" class="video-frame" alt="CCTV 1 Feed" id="liveVideoC1">
-                        <div class="reconnecting-overlay" id="reconnectingOverlayC1">
-                            <div class="reconnecting-spinner">
-                                <div class="spinner-border" role="status"></div>
-                                <span>Reconnecting...</span>
-                            </div>
+
+        <div class="video-container" id="videoContainer">
+            <div class="camera-frame-wrapper">
+                <span class="camera-label">CCTV 1</span>
+                <div class="video-frame-container">
+                    <img src="" class="video-frame" alt="CCTV 1 Feed" id="liveVideoC1">
+                    <div class="reconnecting-overlay" id="reconnectingOverlayC1">
+                        <div class="reconnecting-spinner">
+                            <div class="spinner-border" role="status"></div>
+                            <span>Reconnecting...</span>
                         </div>
                     </div>
                 </div>
-                <div class="camera-frame-wrapper">
-                    <span class="camera-label">CCTV 2</span>
-                    <div class="video-frame-container">
-                        <img src="" class="video-frame" alt="CCTV 2 Feed" id="liveVideoC2">
-                        <div class="reconnecting-overlay" id="reconnectingOverlayC2">
-                            <div class="reconnecting-spinner">
-                                <div class="spinner-border" role="status"></div>
-                                <span>Reconnecting...</span>
-                            </div>
+            </div>
+            <div class="camera-frame-wrapper">
+                <span class="camera-label">CCTV 2</span>
+                <div class="video-frame-container">
+                    <img src="" class="video-frame" alt="CCTV 2 Feed" id="liveVideoC2">
+                    <div class="reconnecting-overlay" id="reconnectingOverlayC2">
+                        <div class="reconnecting-spinner">
+                            <div class="spinner-border" role="status"></div>
+                            <span>Reconnecting...</span>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
+
         <div id="violationEvents" class="mt-4"></div>
     </div>
-    <!-- Server Connection Status Banner -->
+
     <div id="serverStatusBanner"
          class="alert text-center"
          style="display:none;position:fixed;top:0;left:0;width:100%;z-index:9999;font-weight:bold;">
         <span id="serverStatusIcon"></span>
         <span id="serverStatusText"></span>
     </div>
-    <!-- Bootstrap JS Bundle CDN (optional, for future interactivity) -->
+
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
     <script>
-        // Set your Raspberry Pi IP and port here
-        // Example: If your Pi is at 192.168.18.32 and Flask runs on port 5000:
-        const RASPI_BASE = "https://unattainted-elvina-unviewable.ngrok-free.dev"; // Use your ngrok public URL here
+        // -----------------------------
+        // Change this to your server URL
+        const RASPI_BASE = "https://unattainted-elvina-unviewable.ngrok-free.dev";
 
         function raspiUrl(path) {
             return `${RASPI_BASE}${path}`;
         }
 
-        function setRaspiFeeds() {
-            liveVideoC1.src = raspiUrl("/video_feed_c1");
-            liveVideoC2.src = raspiUrl("/video_feed_c2");
-        }
-
-        // Hide sidebar toggle button when sidebar is open, show when closed
-        const sidebar = document.getElementById('sidebarMenu');
-        const toggleBtn = document.getElementById('sidebarToggleBtn');
-        sidebar.addEventListener('show.bs.offcanvas', function () {
-            toggleBtn.style.display = 'none';
-        });
-        sidebar.addEventListener('hidden.bs.offcanvas', function () {
-            toggleBtn.style.display = '';
-        });
-
-        const overlayC1 = document.getElementById('reconnectingOverlayC1');
-        const overlayC2 = document.getElementById('reconnectingOverlayC2');
         const liveVideoC1 = document.getElementById('liveVideoC1');
         const liveVideoC2 = document.getElementById('liveVideoC2');
+        const overlayC1 = document.getElementById('reconnectingOverlayC1');
+        const overlayC2 = document.getElementById('reconnectingOverlayC2');
 
-        // Track previous reconnecting state to avoid unnecessary class toggling (prevents flicker)
         let prevC1 = null, prevC2 = null;
 
+        // Set video feeds with timestamp to avoid caching
+        function setRaspiFeeds() {
+            liveVideoC1.src = raspiUrl("/video_feed_c1") + "?t=" + Date.now();
+            liveVideoC2.src = raspiUrl("/video_feed_c2") + "?t=" + Date.now();
+        }
+
+        // Check camera status and toggle overlay
         async function checkCameraStatus() {
-            if (!RASPI_BASE) return; // Prevent fetch if Pi URL not set
+            if (!RASPI_BASE) return;
             try {
                 const res = await fetch(raspiUrl('/api/camera_status'));
                 const status = await res.json();
@@ -320,7 +190,6 @@
                     prevC2 = status.Camera_2.reconnecting;
                 }
             } catch (e) {
-                // On error, show overlays for both as fallback
                 overlayC1.classList.add('active');
                 overlayC2.classList.add('active');
                 liveVideoC1.style.filter = 'blur(6px) grayscale(0.4)';
@@ -329,59 +198,28 @@
             }
         }
 
-        // Add this function to reload the video feeds (force refresh)
-        function reloadVideoFeeds() {
-            // Add a timestamp to force reload
-            liveVideoC1.src = raspiUrl("/video_feed_c1") + "?t=" + Date.now();
-            liveVideoC2.src = raspiUrl("/video_feed_c2") + "?t=" + Date.now();
-        }
-
-        // Listen for zone changes via localStorage event (from settings.html)
-        window.addEventListener('storage', function(e) {
-            if (e.key === 'zoneChanged' && e.newValue === '1') {
-                reloadVideoFeeds();
-                // Reset the flag
-                localStorage.setItem('zoneChanged', '0');
-            }
-        });
-
-        // Server health check logic
-        let lastHealthOk = true;
         async function checkServerHealth() {
-            if (!RASPI_BASE) return; // Prevent fetch if Pi URL not set
             const banner = document.getElementById('serverStatusBanner');
             const icon = document.getElementById('serverStatusIcon');
             const text = document.getElementById('serverStatusText');
             try {
                 const res = await fetch(raspiUrl('/api/health'), {cache: "no-store"});
                 if (res.ok) {
-                    // Connected
                     banner.classList.remove('alert-danger');
                     banner.classList.add('alert-success');
                     icon.innerHTML = '<i class="bi bi-check-circle-fill"></i>';
                     text.textContent = ' Connected to Raspberry Pi Server';
                     banner.style.display = '';
-                    lastHealthOk = true;
-                } else {
-                    // Not connected
-                    banner.classList.remove('alert-success');
-                    banner.classList.add('alert-danger');
-                    icon.innerHTML = '<i class="bi bi-exclamation-triangle-fill"></i>';
-                    text.textContent = ' Server Offline: Unable to connect to Raspberry Pi';
-                    banner.style.display = '';
-                    lastHealthOk = false;
-                }
-            } catch (e) {
+                } else throw new Error("Server offline");
+            } catch {
                 banner.classList.remove('alert-success');
                 banner.classList.add('alert-danger');
                 icon.innerHTML = '<i class="bi bi-exclamation-triangle-fill"></i>';
                 text.textContent = ' Server Offline: Unable to connect to Raspberry Pi';
                 banner.style.display = '';
-                lastHealthOk = false;
             }
         }
 
-        // Fetch and display violation events from cloud
         async function loadViolationEvents() {
             try {
                 const res = await fetch('/api/events');
@@ -407,15 +245,22 @@
                         </div>
                     </div>
                 `).join('');
-            } catch (e) {
+            } catch {
                 document.getElementById('violationEvents').innerHTML = "<div class='alert alert-danger'>Failed to load events.</div>";
             }
         }
 
+        // Reload video feeds periodically
+        setInterval(setRaspiFeeds, 15000); // refresh every 15s
+        setInterval(checkCameraStatus, 5000); // check reconnect every 5s
+        setInterval(checkServerHealth, 10000); // check server every 10s
+
         window.onload = function() {
             setRaspiFeeds();
+            checkCameraStatus();
+            checkServerHealth();
             loadViolationEvents();
-            setInterval(loadViolationEvents, 10000); // Refresh every 10s
+            setInterval(loadViolationEvents, 10000);
         };
     </script>
 </body>

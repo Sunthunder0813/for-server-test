@@ -266,10 +266,4 @@ def decode_image(data):
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 5000))
     print(f"Starting Flask on 0.0.0.0:{port}")
-    
-    # Commented out ngrok for stable LAN testing
-    # from pyngrok import ngrok
-    # public_url = ngrok.connect(port)
-    # print("ngrok tunnel running at:", public_url)
-    
     app.run(host='0.0.0.0', port=port, threaded=True)

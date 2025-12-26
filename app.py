@@ -1,18 +1,22 @@
 import os
 import logging
-from flask import Flask, render_template, jsonify, request, make_response, send_from_directory
-import config
+import cv2
 import importlib
 import traceback
+from flask import Flask, render_template, jsonify, request, make_response, Response
 from datetime import datetime
 
+# Logging setup
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("ParkingApp")
 
 app = Flask(__name__)
 
-# In-memory event storage (replace with DB in production)
+# --- In-memory storage for violation events ---
 EVENTS = []
+
+# --- Load configuration ---
+import config
 
 def get_current_settings():
     return {
@@ -36,9 +40,12 @@ def update_config_py(new_settings):
                 else:
                     lines[i] = f"{key} = {value}\n"
                 return
-        lines.append(f"{key} = {pyjson.dumps(value) if key == 'PARKING_ZONES' else value}\n")
+        # Key not found, append
+        lines.append(f"{key} = {pyjson.dumps(value) if key=='PARKING_ZONES' else value}\n")
+
     replace_line("VIOLATION_TIME_THRESHOLD", new_settings.get("VIOLATION_TIME_THRESHOLD", getattr(config, "VIOLATION_TIME_THRESHOLD", 10)))
     replace_line("REPEAT_CAPTURE_INTERVAL", new_settings.get("REPEAT_CAPTURE_INTERVAL", getattr(config, "REPEAT_CAPTURE_INTERVAL", 60)))
+
     if "PARKING_ZONES" in new_settings:
         current_zones = getattr(config, "PARKING_ZONES", {})
         updated_zones = current_zones.copy()
@@ -48,10 +55,28 @@ def update_config_py(new_settings):
             else:
                 updated_zones[cam] = val
         replace_line("PARKING_ZONES", updated_zones)
+
     with open(config_path, "w") as f:
         f.writelines(lines)
     importlib.reload(config)
 
+# --- Camera Setup ---
+# Adjust camera indices as needed for your system
+camera_1 = cv2.VideoCapture(0)
+camera_2 = cv2.VideoCapture(1)
+
+def gen(camera):
+    while True:
+        ret, frame = camera.read()
+        if not ret:
+            continue
+        ret, jpeg = cv2.imencode('.jpg', frame)
+        if not ret:
+            continue
+        yield (b'--frame\r\n'
+               b'Content-Type: image/jpeg\r\n\r\n' + jpeg.tobytes() + b'\r\n\r\n')
+
+# --- Routes ---
 @app.route('/')
 def index():
     return render_template("index.html")
@@ -68,6 +93,25 @@ def violations_page():
 def ping():
     return "pong"
 
+@app.route('/video_feed_c1')
+def video_feed_c1():
+    return Response(gen(camera_1), mimetype='multipart/x-mixed-replace; boundary=frame')
+
+@app.route('/video_feed_c2')
+def video_feed_c2():
+    return Response(gen(camera_2), mimetype='multipart/x-mixed-replace; boundary=frame')
+
+@app.route('/api/camera_status')
+def camera_status():
+    try:
+        return jsonify({
+            "Camera_1": {"reconnecting": not camera_1.isOpened()},
+            "Camera_2": {"reconnecting": not camera_2.isOpened()}
+        })
+    except Exception as e:
+        logger.error(f"Error checking camera status: {e}")
+        return jsonify({"success": False, "error": str(e)}), 500
+
 @app.route('/api/settings', methods=['GET', 'POST'])
 def api_settings():
     if request.method == 'POST':
@@ -75,59 +119,30 @@ def api_settings():
         return jsonify({"success": True})
     return jsonify(get_current_settings())
 
-@app.route('/api/zone_selector', methods=['POST'])
-def api_zone_selector():
-    try:
-        data = request.get_json(force=True)
-        camera = data.get("camera", "Camera_1")
-        cam_arg = "1" if camera == "Camera_1" else "2"
-        import subprocess
-        proc = subprocess.Popen(["python", "zone_selector.py", cam_arg], cwd=os.path.dirname(__file__),
-                                stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
-        stdout, stderr = proc.communicate()
-        import re, json as pyjson
-        match = re.search(r"\[\s*\[.*?\]\s*\]", stdout, re.DOTALL)
-        if match:
-            zone = pyjson.loads(match.group(0))
-            update_config_py({"PARKING_ZONES": {camera: zone}})
-            return jsonify({"success": True, "zone": zone})
-        return jsonify({"success": False, "error": "No zone found"})
-    except Exception as e:
-        return jsonify({"success": False, "error": str(e)})
-
 @app.route('/api/raspi_ip')
 def raspi_ip():
-    # For ngrok, only the hostname is needed; frontend will use HTTPS and omit port.
     raspi_ip = os.environ.get("RASPI_IP", "192.168.18.32")
-    # raspi_port is kept for compatibility, but frontend should ignore it for ngrok
     raspi_port = os.environ.get("RASPI_PORT", "5000")
     return jsonify({"ip": raspi_ip, "port": raspi_port})
 
-# --- CLOUD: Receive violation event from edge ---
 @app.route('/api/upload_event', methods=['POST'])
 def upload_event():
-    """
-    Receives: JSON with fields:
-      - camera_id
-      - timestamp
-      - image (base64-encoded)
-      - meta (optional: detection info)
-    """
     try:
         data = request.get_json(force=True)
         camera_id = data.get("camera_id")
         timestamp = data.get("timestamp", datetime.utcnow().isoformat())
         image_b64 = data.get("image")
         meta = data.get("meta", {})
-        # Save image to static/events/
+
         if not os.path.exists("static/events"):
             os.makedirs("static/events")
         fname = f"{camera_id}_{timestamp.replace(':','-').replace('.','-')}.jpg"
         img_path = os.path.join("static/events", fname)
+
         import base64
         with open(img_path, "wb") as f:
             f.write(base64.b64decode(image_b64))
-        # Store event
+
         EVENTS.append({
             "camera_id": camera_id,
             "timestamp": timestamp,
@@ -141,19 +156,17 @@ def upload_event():
 
 @app.route('/api/events')
 def api_events():
-    """Return all violation events (for dashboard/history)."""
     return jsonify(EVENTS)
 
+# --- Error handler ---
 @app.errorhandler(Exception)
 def handle_exception(e):
-    # Log the full traceback
     logger.error("Unhandled Exception: %s\n%s", e, traceback.format_exc())
-    # For API endpoints, return JSON error
     if request.path.startswith('/api/'):
         return jsonify({"success": False, "error": str(e)}), 500
-    # For web pages, show a simple error page
     return make_response("Internal Server Error", 500)
 
+# --- Main ---
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
     app.run(host='0.0.0.0', port=port, threaded=True)

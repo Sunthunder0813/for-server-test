@@ -22,9 +22,23 @@ if not os.path.exists(config.SAVE_DIR):
 
 CLASS_NAMES = {0: "PERSON", 2: "CAR", 3: "MOTORCYCLE", 5: "BUS", 7: "TRUCK"}
 
-# --- Tracking Logic (copied from app.py) ---
+# --- Root route for health & info ---
+@app.route("/")
+def index():
+    return jsonify({
+        "service": "Raspberry Pi Parking Monitor",
+        "status": "running",
+        "endpoints": [
+            "/video_feed_c1",
+            "/video_feed_c2",
+            "/api/camera_status",
+            "/api/health",
+            "/detect"
+        ]
+    })
+
+# --- Tracking Logic ---
 class ByteTrackLite:
-    # ...existing code from app.py...
     def __init__(self):
         self.tracked_objects = {}
         self.frame_count = 0
@@ -61,7 +75,6 @@ class ByteTrackLite:
         return {k: v for k, v in new_tracks.items() if v['last_seen'] == self.frame_count}
 
 class ParkingMonitor:
-    # ...existing code from app.py...
     def __init__(self):
         self.trackers = {"Camera_1": ByteTrackLite(), "Camera_2": ByteTrackLite()}
         self.timers = {}
@@ -114,7 +127,6 @@ class ParkingMonitor:
         if not os.path.exists(date_dir): os.makedirs(date_dir)
         path = os.path.join(date_dir, f"{cam}-{now.strftime('%H_%M_%S')}.jpg")
         cv2.imwrite(path, frame)
-        # Send violation event to cloud dashboard
         meta = {
             "tracker_id": tid,
             "label": label,
@@ -123,7 +135,6 @@ class ParkingMonitor:
         upload_event_to_cloud(cam, frame, meta)
 
 class Stream:
-    # ...existing code from app.py...
     def __init__(self, url):
         self.url = url
         self.cap = cv2.VideoCapture(url)
@@ -163,6 +174,7 @@ class Stream:
     def reconnect(self):
         self.reconnect_event.set()
 
+# --- Initialize monitoring ---
 monitor = ParkingMonitor()
 c1, c2 = Stream(config.CAM1_URL), Stream(config.CAM2_URL)
 latest_processed = {"Camera_1": None, "Camera_2": None}
@@ -197,6 +209,7 @@ def gen_single(stream, cam_name):
         yield (b'--frame\r\nContent-Type: image/jpeg\r\n\r\n' + buf.tobytes() + b'\r\n')
         time.sleep(0.03)
 
+# --- Flask routes ---
 @app.route('/video_feed_c1')
 def video_feed_c1():
     return Response(gen_single(c1, "Camera_1"), mimetype='multipart/x-mixed-replace; boundary=frame')
@@ -233,7 +246,6 @@ def detect_endpoint():
         return jsonify({'success': False, 'error': 'Detection failed'}), 500
 
     res = results[0]
-    # Convert numpy arrays to lists for JSON serialization
     return jsonify({
         'success': True,
         'boxes': res.xyxy.tolist(),
@@ -242,7 +254,6 @@ def detect_endpoint():
     })
 
 def decode_image(data):
-    # Accepts base64 string or file upload
     if isinstance(data, str):
         img_bytes = base64.b64decode(data)
         img_array = np.frombuffer(img_bytes, np.uint8)
@@ -253,8 +264,8 @@ def decode_image(data):
         return cv2.imdecode(img_array, cv2.IMREAD_COLOR)
     return None
 
+# --- Start server ---
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 5000))
-    # Print the actual host and port for debugging
     print(f"Starting Flask on 0.0.0.0:{port}")
     app.run(host='0.0.0.0', port=port, threaded=True)

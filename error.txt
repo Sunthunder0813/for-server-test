@@ -1,2 +1,77 @@
 https://unattainted-elvina-unviewable.ngrok-free.dev/video_feed_c1
 https://unattainted-elvina-unviewable.ngrok-free.dev/video_feed_c2
+
+
+(venv) set-admin@raspberrypi:~/for-server-test $ python3 raspi_server.py
+Starting Flask on 0.0.0.0:5000
+INFO:pyngrok.ngrok:Opening tunnel named: http-5000-dd90f942-086c-4308-855c-6648536cfe89
+ERROR:ParkingApp:Remote detection failed: HTTPConnectionPool(host='192.168.18.32', port=5000): Max retries exceeded with url: /detect (Caused by NewConnectionError("HTTPConnection(host='192.168.18.32', port=5000): Failed to establish a new connection: [Errno 111] Connection refused"))
+INFO:pyngrok.process.ngrok:t=2025-12-26T09:46:41+0800 lvl=info msg="no configuration paths supplied"
+INFO:pyngrok.process.ngrok:t=2025-12-26T09:46:41+0800 lvl=info msg="using configuration at default config path" path=/home/set-admin/.config/ngrok/ngrok.yml
+INFO:pyngrok.process.ngrok:t=2025-12-26T09:46:41+0800 lvl=info msg="open config file" path=/home/set-admin/.config/ngrok/ngrok.yml err=nil
+INFO:pyngrok.process.ngrok:t=2025-12-26T09:46:41+0800 lvl=info msg="FIPS 140 mode" enabled=false
+INFO:pyngrok.process.ngrok:t=2025-12-26T09:46:41+0800 lvl=info msg="starting web service" obj=web addr=127.0.0.1:4040 allow_hosts=[]
+ERROR:ParkingApp:Remote detection failed: HTTPConnectionPool(host='192.168.18.32', port=5000): Max retries exceeded with url: /detect (Caused by NewConnectionError("HTTPConnection(host='192.168.18.32', port=5000): Failed to establish a new connection: [Errno 111] Connection refused"))
+ERROR:ParkingApp:Remote detection failed: HTTPConnectionPool(host='192.168.18.32', port=5000): Max retries exceeded with url: /detect (Caused by NewConnectionError("HTTPConnection(host='192.168.18.32', port=5000): Failed to establish a new connection: [Errno 111] Connection refused"))
+ERROR:ParkingApp:Remote detection failed: HTTPConnectionPool(host='192.168.18.32', port=5000): Max retries exceeded with url: /detect (Caused by NewConnectionError("HTTPConnection(host='192.168.18.32', port=5000): Failed to establish a new connection: [Errno 111] Connection refused"))
+ERROR:ParkingApp:Remote detection failed: HTTPConnectionPool(host='192.168.18.32', port=5000): Max retries exceeded with url: /detect (Caused by NewConnectionError("HTTPConnection(host='192.168.18.32', port=5000): Failed to establish a new connection: [Errno 111] Connection refused"))
+INFO:pyngrok.process.ngrok:t=2025-12-26T09:46:41+0800 lvl=info msg="client session established" obj=tunnels.session
+INFO:pyngrok.process.ngrok:t=2025-12-26T09:46:41+0800 lvl=info msg="tunnel session started" obj=tunnels.session
+INFO:pyngrok.process.ngrok:t=2025-12-26T09:46:41+0800 lvl=info msg=start pg=/api/tunnels id=3c87d968b6110fc3
+ERROR:ParkingApp:Remote detection failed: HTTPConnectionPool(host='192.168.18.32', port=5000): Max retries exceeded with url: /detect (Caused by NewConnectionError("HTTPConnection(host='192.168.18.32', port=5000): Failed to establish a new connection: [Errno 111] Connection refused"))
+INFO:pyngrok.process.ngrok:t=2025-12-26T09:46:41+0800 lvl=info msg=end pg=/api/tunnels id=3c87d968b6110fc3 status=200 dur=222.952µs
+INFO:pyngrok.process.ngrok:t=2025-12-26T09:46:41+0800 lvl=info msg=start pg=/api/tunnels id=b594c2e9a7c8bb9d
+INFO:pyngrok.process.ngrok:t=2025-12-26T09:46:41+0800 lvl=info msg=end pg=/api/tunnels id=b594c2e9a7c8bb9d status=200 dur=105.782µs
+INFO:pyngrok.process.ngrok:t=2025-12-26T09:46:41+0800 lvl=info msg=start pg=/api/tunnels id=32bf3dd9f9022900
+INFO:pyngrok.process.ngrok:t=2025-12-26T09:46:41+0800 lvl=info msg=end pg=/api/tunnels id=32bf3dd9f9022900 status=200 dur=172.71µs
+INFO:pyngrok.process.ngrok:t=2025-12-26T09:46:41+0800 lvl=info msg=start pg=/api/tunnels id=ae62e8a74b2d67ae
+ERROR:ParkingApp:Remote detection failed: HTTPConnectionPool(host='192.168.18.32', port=5000): Max retries exceeded with url: /detect (Caused by NewConnectionError("HTTPConnection(host='192.168.18.32', port=5000): Failed to establish a new connection: [Errno 111] Connection refused"))
+ERROR:ParkingApp:Remote detection failed: HTTPConnectionPool(host='192.168.18.32', port=5000): Max retries exceeded with url: /detect (Caused by NewConnectionError("HTTPConnection(host='192.168.18.32', port=5000): Failed to establish a new connection: [Errno 111] Connection refused"))
+ERROR:ParkingApp:Remote detection failed: HTTPConnectionPool(host='192.168.18.32', port=5000): Max retries exceeded with url: /detect (Caused by NewConnectionError("HTTPConnection(host='192.168.18.32', port=5000): Failed to establish a new connection: [Errno 111] Connection refused"))
+ERROR:ParkingApp:Remote detection failed: HTTPConnectionPool(host='192.168.18.32', port=5000): Max retries exceeded with url: /detect (Caused by NewConnectionError("HTTPConnection(host='192.168.18.32', port=5000): Failed to establish a new connection: [Errno 111] Connection refused"))
+ERROR:ParkingApp:Remote detection failed: HTTPConnectionPool(host='192.168.18.32', port=5000): Max retries exceeded with url: /detect (Caused by NewConnectionError("HTTPConnection(host='192.168.18.32', port=5000): Failed to establish a new connection: [Errno 111] Connection refused"))
+^CINFO:pyngrok.process.ngrok:t=2025-12-26T09:46:41+0800 lvl=info msg="received stop request" obj=app stopReq="{err:<nil> restart:false}"
+INFO:pyngrok.process.ngrok:t=2025-12-26T09:46:41+0800 lvl=info msg="session closing" obj=tunnels.session err=nil
+Traceback (most recent call last):
+  File "/home/set-admin/for-server-test/raspi_server.py", line 306, in <module>
+    ngrok_tunnel, public_url = start_ngrok(port)
+                               ~~~~~~~~~~~^^^^^^
+  File "/home/set-admin/for-server-test/raspi_server.py", line 283, in start_ngrok
+    tunnel = ngrok.connect(port, bind_tls=True)
+  File "/home/set-admin/for-server-test/venv/lib/python3.13/site-packages/pyngrok/ngrok.py", line 339, in connect
+    tunnel = NgrokTunnel(api_request(f"{api_url}/api/tunnels", method="POST", data=options,
+                         ~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+                                     timeout=pyngrok_config.request_timeout),
+                                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/set-admin/for-server-test/venv/lib/python3.13/site-packages/pyngrok/ngrok.py", line 574, in api_request
+    response = urlopen(request, encoded_data, timeout)
+  File "/usr/lib/python3.13/urllib/request.py", line 189, in urlopen
+    return opener.open(url, data, timeout)
+           ~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.13/urllib/request.py", line 489, in open
+    response = self._open(req, data)
+  File "/usr/lib/python3.13/urllib/request.py", line 506, in _open
+    result = self._call_chain(self.handle_open, protocol, protocol +
+                              '_open', req)
+  File "/usr/lib/python3.13/urllib/request.py", line 466, in _call_chain
+    result = func(*args)
+  File "/usr/lib/python3.13/urllib/request.py", line 1348, in http_open
+    return self.do_open(http.client.HTTPConnection, req)
+           ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.13/urllib/request.py", line 1323, in do_open
+    r = h.getresponse()
+  File "/usr/lib/python3.13/http/client.py", line 1430, in getresponse
+    response.begin()
+    ~~~~~~~~~~~~~~^^
+  File "/usr/lib/python3.13/http/client.py", line 331, in begin
+    version, status, reason = self._read_status()
+                              ~~~~~~~~~~~~~~~~~^^
+  File "/usr/lib/python3.13/http/client.py", line 292, in _read_status
+    line = str(self.fp.readline(_MAXLINE + 1), "iso-8859-1")
+               ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^
+  File "/usr/lib/python3.13/socket.py", line 719, in readinto
+    return self._sock.recv_into(b)
+           ~~~~~~~~~~~~~~~~~~~~^^^
+KeyboardInterrupt
+FATAL: exception not rethrown
+Aborted

@@ -6,6 +6,7 @@ import os
 import requests
 import base64
 from datetime import datetime
+import config
 
 logger = logging.getLogger("ParkingApp")
 
@@ -20,7 +21,6 @@ if USE_REMOTE_DETECTION is None:
     # Try to import Hailo, if fails, use remote detection
     try:
         from hailo_platform import HEF, VDevice, InferVStreams, ConfigureParams, InputVStreamParams, OutputVStreamParams, HailoStreamInterface
-        import config
         USE_REMOTE_DETECTION = False
     except ImportError:
         USE_REMOTE_DETECTION = True

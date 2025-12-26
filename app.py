@@ -66,24 +66,19 @@ camera_1 = cv2.VideoCapture(0)
 camera_2 = cv2.VideoCapture(1)
 
 # Fallback blank frame if camera fails
-blank_frame_path = "blank.png"
+blank_frame_path = "blank.jpg"
 if not os.path.exists(blank_frame_path):
     import numpy as np
     cv2.imwrite(blank_frame_path, np.zeros((360,640,3), dtype=np.uint8))
 
-def gen(camera, cam_name):
+def gen(camera):
     blank_frame = cv2.imread(blank_frame_path)
     while True:
-        if not camera.isOpened():
-            frame = blank_frame.copy()
-            cv2.putText(frame, f"{cam_name} OFFLINE", (160, 180), 0, 1.5, (0,0,255), 3)
+        ret, frame = camera.read()
+        if not ret:
+            frame = blank_frame
         else:
-            ret, frame = camera.read()
-            if not ret:
-                frame = blank_frame.copy()
-                cv2.putText(frame, f"{cam_name} OFFLINE", (160, 180), 0, 1.5, (0,0,255), 3)
-            else:
-                frame = cv2.resize(frame, (640,360))
+            frame = cv2.resize(frame, (640,360))
         ret, jpeg = cv2.imencode('.jpg', frame)
         if not ret:
             continue
@@ -111,30 +106,10 @@ def start_cloudflared(port=5000):
     print(f"Cloudflared tunnel running at: {url}")
     return process, url
 
-# --- Store latest Pi public URL in memory ---
-PI_PUBLIC_URL = ""
-
-@app.route('/api/set_pi_url', methods=['POST'])
-def set_pi_url():
-    global PI_PUBLIC_URL
-    data = request.get_json(force=True)
-    PI_PUBLIC_URL = data.get("public_url", "")
-    return jsonify({"success": True, "public_url": PI_PUBLIC_URL})
-
-@app.route('/api/get_pi_url')
-def get_pi_url():
-    return jsonify({"public_url": PI_PUBLIC_URL})
-
-@app.route('/api/pi_public_url')
-def pi_public_url():
-    logger.info(f"Pi public URL requested: {PI_PUBLIC_URL}")
-    return jsonify({"public_url": PI_PUBLIC_URL})
-
 # --- Routes ---
 @app.route('/')
 def index():
-    # Inject the latest Pi public URL if available
-    return render_template('index.html', public_url=PI_PUBLIC_URL)
+    return render_template('index.html')
 
 @app.route('/settings.html')
 def settings_page():
@@ -150,24 +125,18 @@ def ping():
 
 @app.route('/video_feed_c1')
 def video_feed_c1():
-    return Response(gen(camera_1, "Camera_1"), mimetype='multipart/x-mixed-replace; boundary=frame')
+    return Response(gen(camera_1), mimetype='multipart/x-mixed-replace; boundary=frame')
 
 @app.route('/video_feed_c2')
 def video_feed_c2():
-    return Response(gen(camera_2, "Camera_2"), mimetype='multipart/x-mixed-replace; boundary=frame')
+    return Response(gen(camera_2), mimetype='multipart/x-mixed-replace; boundary=frame')
 
 @app.route('/api/camera_status')
 def camera_status():
     try:
         return jsonify({
-            "Camera_1": {
-                "reconnecting": not camera_1.isOpened(),
-                "online": camera_1.isOpened()
-            },
-            "Camera_2": {
-                "reconnecting": not camera_2.isOpened(),
-                "online": camera_2.isOpened()
-            }
+            "Camera_1": {"reconnecting": not camera_1.isOpened()},
+            "Camera_2": {"reconnecting": not camera_2.isOpened()}
         })
     except Exception as e:
         logger.error(f"Error checking camera status: {e}")

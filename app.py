@@ -64,11 +64,25 @@ def update_config_py(new_settings):
 
 # --- Camera setup ---
 import config
-CAMERA_1_SRC = os.environ.get("CAMERA_1_SRC", config.CAM1_URL)
-CAMERA_2_SRC = os.environ.get("CAMERA_2_SRC", config.CAM2_URL)
 
-camera_1 = cv2.VideoCapture(CAMERA_1_SRC)
-camera_2 = cv2.VideoCapture(CAMERA_2_SRC)
+# Only create local camera objects if not using RASPI_PUBLIC_URL
+RASPI_PUBLIC_URL = os.environ.get("RASPI_PUBLIC_URL", "")
+
+if not RASPI_PUBLIC_URL:
+    CAMERA_1_SRC = os.environ.get("CAMERA_1_SRC", config.CAM1_URL)
+    CAMERA_2_SRC = os.environ.get("CAMERA_2_SRC", config.CAM2_URL)
+    camera_1 = cv2.VideoCapture(CAMERA_1_SRC)
+    camera_2 = cv2.VideoCapture(CAMERA_2_SRC)
+else:
+    camera_1 = None
+    camera_2 = None
+
+def get_pi_video_url(cam):
+    # cam: "video_feed_c1" or "video_feed_c2"
+    if RASPI_PUBLIC_URL:
+        base = RASPI_PUBLIC_URL.rstrip("/")
+        return f"{base}/{cam}"
+    return None
 
 # --- Camera status tracking ---
 CAMERA_STATUS = {
@@ -86,7 +100,7 @@ if not os.path.exists(blank_frame_path):
 def gen(camera, cam_name):
     blank_frame = cv2.imread(blank_frame_path)
     while True:
-        if not camera.isOpened():
+        if camera is None or not camera.isOpened():
             frame = blank_frame.copy()
             cv2.putText(frame, f"{cam_name} OFFLINE", (160, 180), 0, 1.5, (0,0,255), 3)
             CAMERA_STATUS[cam_name]["online"] = False
@@ -164,9 +178,16 @@ def violations_page():
 def ping():
     return "pong"
 
+from flask import redirect
+
 @app.route('/video_feed_c1')
 def video_feed_c1():
-    if not camera_1.isOpened():
+    pi_url = get_pi_video_url("video_feed_c1")
+    if pi_url:
+        logger.info(f"Redirecting /video_feed_c1 to {pi_url}")
+        return redirect(pi_url)
+    if camera_1 is None or not camera_1.isOpened():
+        logger.warning("Camera 1 not available (isOpened() == False or camera_1 is None)")
         return Response("Camera 1 not available", status=503, mimetype='text/plain')
     logger.info(f'{request.remote_addr} - - [{datetime.datetime.now().strftime("%d/%b/%Y %H:%M:%S")}] "GET /video_feed_c1{request.query_string.decode() and "?" + request.query_string.decode() or ""} HTTP/1.1" 200 -')
     return Response(
@@ -177,7 +198,12 @@ def video_feed_c1():
 
 @app.route('/video_feed_c2')
 def video_feed_c2():
-    if not camera_2.isOpened():
+    pi_url = get_pi_video_url("video_feed_c2")
+    if pi_url:
+        logger.info(f"Redirecting /video_feed_c2 to {pi_url}")
+        return redirect(pi_url)
+    if camera_2 is None or not camera_2.isOpened():
+        logger.warning("Camera 2 not available (isOpened() == False or camera_2 is None)")
         return Response("Camera 2 not available", status=503, mimetype='text/plain')
     logger.info(f'{request.remote_addr} - - [{datetime.datetime.now().strftime("%d/%b/%Y %H:%M:%S")}] "GET /video_feed_c2{request.query_string.decode() and "?" + request.query_string.decode() or ""} HTTP/1.1" 200 -')
     return Response(
@@ -248,6 +274,10 @@ def upload_event():
 @app.route('/api/events')
 def api_events():
     return jsonify(EVENTS)
+
+@app.route('/favicon.ico')
+def favicon():
+    return '', 204
 
 # --- Error handler ---
 @app.errorhandler(Exception)

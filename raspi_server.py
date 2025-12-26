@@ -12,6 +12,9 @@ import datetime
 import importlib
 from app_detect import detect, upload_event_to_cloud
 
+# --- ngrok ---
+from pyngrok import ngrok
+
 # --- Flask app ---
 app = Flask(__name__)
 
@@ -266,8 +269,14 @@ def decode_image(data):
         return cv2.imdecode(img_array, cv2.IMREAD_COLOR)
     return None
 
-# --- Start server ---
+# --- Start server with ngrok ---
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 5000))
     print(f"Starting Flask on 0.0.0.0:{port}")
+
+    # Start ngrok tunnel
+    public_url = ngrok.connect(port)
+    print("ngrok tunnel running at:", public_url)
+
+    # Start Flask
     app.run(host='0.0.0.0', port=port, threaded=True)

@@ -1,3 +1,4 @@
+# raspi_server.py
 import io
 import base64
 import numpy as np
@@ -8,7 +9,6 @@ import os
 import logging
 from flask import Flask, request, jsonify, Response
 import config
-import datetime
 import importlib
 from app_detect import detect, upload_event_to_cloud
 import signal
@@ -45,7 +45,7 @@ def index():
         ]
     })
 
-# --- Tracking ---
+# --- Simple Tracker ---
 class ByteTrackLite:
     def __init__(self):
         self.tracked_objects = {}
@@ -76,29 +76,22 @@ class ByteTrackLite:
             elif score >= config.DETECTION_THRESHOLD:
                 new_tracks[self.next_id] = {'box': box, 'cls': cid, 'last_seen': self.frame_count}
                 self.next_id += 1
+        # Keep objects recently seen
         for tid, t in self.tracked_objects.items():
             if self.frame_count - t['last_seen'] < self.buffer:
                 new_tracks[tid] = t
         self.tracked_objects = new_tracks
         return {k: v for k, v in new_tracks.items() if v['last_seen'] == self.frame_count}
 
-# --- Parking monitor ---
+# --- Parking Monitor ---
 class ParkingMonitor:
     def __init__(self):
         self.trackers = {"Camera_1": ByteTrackLite(), "Camera_2": ByteTrackLite()}
         self.timers = {}
         self.last_upload_time = {}
-        self.reload_zones()
-
-    def reload_zones(self):
-        importlib.reload(config)
-        self.zones = {
-            cam: np.array(points)
-            for cam, points in getattr(config, "PARKING_ZONES", {}).items()
-        }
+        self.zones = {cam: np.array(points) for cam, points in getattr(config, "PARKING_ZONES", {}).items()}
 
     def process(self, name, res, frame):
-        self.reload_zones()
         if name not in self.zones: return
         fh, fw = frame.shape[:2]
         cv2.polylines(frame, [self.zones[name]], True, (0, 0, 255), 2)
@@ -109,7 +102,7 @@ class ParkingMonitor:
             x1, y1, x2, y2 = map(int, d['box'])
             label = CLASS_NAMES.get(d['cls'], "OBJ")
             center = ((x1+x2)//2, (y1+y2)//2)
-            if d['cls'] == 0:
+            if d['cls'] == 0:  # person, skip for violation
                 cv2.rectangle(frame, (x1, y1), (x2, y2), (255, 255, 0), 1)
                 continue
             in_zone = cv2.pointPolygonTest(self.zones[name], center, False) >= 0
@@ -130,10 +123,11 @@ class ParkingMonitor:
                 self.timers.pop((name, tid), None)
 
     def log_violation(self, cam, tid, label, frame):
+        import datetime
         now = datetime.datetime.now()
         date_folder = now.strftime("%B %d, %Y (%A)")
         date_dir = os.path.join(config.SAVE_DIR, date_folder)
-        if not os.path.exists(date_dir): os.makedirs(date_dir)
+        os.makedirs(date_dir, exist_ok=True)
         path = os.path.join(date_dir, f"{cam}-{now.strftime('%H_%M_%S')}.jpg")
         cv2.imwrite(path, frame)
         meta = {"tracker_id": tid, "label": label, "timestamp": now.isoformat()}
@@ -191,7 +185,6 @@ def processing_worker(cam_name, stream):
         frame = stream.get_frame()
         if frame is not None and stream.is_online():
             try:
-                # --- Direct detection call, no HTTP ---
                 res = detect([frame])
                 if res:
                     frame_disp = frame.copy()
@@ -231,8 +224,8 @@ def video_feed_c2():
 @app.route('/api/camera_status')
 def camera_status():
     return jsonify({
-        "Camera_1": {"reconnecting": c1.reconnecting},
-        "Camera_2": {"reconnecting": c2.reconnecting}
+        "Camera_1": {"reconnecting": c1.reconnecting, "online": c1.is_online()},
+        "Camera_2": {"reconnecting": c2.reconnecting, "online": c2.is_online()}
     })
 
 @app.route('/api/health', methods=['GET'])
@@ -241,7 +234,7 @@ def health():
 
 @app.route('/detect', methods=['POST'])
 def detect_endpoint():
-    # Decode image directly, no HTTP self-call
+    img = None
     if 'image' in request.files:
         img = decode_image(request.files['image'])
     else:
@@ -297,27 +290,20 @@ def start_ngrok(port=5000, timeout=10):
     print(f"ngrok tunnel running at: {public_url}")
     return tunnel, public_url
 
+# --- Graceful shutdown ---
+def shutdown(sig, frame):
+    print("Shutting down...")
+    os._exit(0)
+
+signal.signal(signal.SIGINT, shutdown)
+signal.signal(signal.SIGTERM, shutdown)
+
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 5000))
     print(f"Starting Flask on 0.0.0.0:{port}")
-
     ngrok_tunnel = None
     try:
         ngrok_tunnel, public_url = start_ngrok(port)
     except Exception as e:
         print("ngrok tunnel failed:", e)
-
-    # Graceful shutdown
-    def shutdown(sig, frame):
-        print("Shutting down...")
-        try:
-            if ngrok_tunnel:
-                ngrok.disconnect(ngrok_tunnel.public_url)
-                ngrok.kill()
-        except Exception:
-            pass
-        os._exit(0)
-    signal.signal(signal.SIGINT, shutdown)
-    signal.signal(signal.SIGTERM, shutdown)
-
     app.run(host='0.0.0.0', port=port, threaded=True)

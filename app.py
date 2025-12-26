@@ -155,8 +155,14 @@ def video_feed_c2():
 def camera_status():
     try:
         return jsonify({
-            "Camera_1": {"reconnecting": not camera_1.isOpened()},
-            "Camera_2": {"reconnecting": not camera_2.isOpened()}
+            "Camera_1": {
+                "reconnecting": not camera_1.isOpened(),
+                "online": camera_1.isOpened()
+            },
+            "Camera_2": {
+                "reconnecting": not camera_2.isOpened(),
+                "online": camera_2.isOpened()
+            }
         })
     except Exception as e:
         logger.error(f"Error checking camera status: {e}")

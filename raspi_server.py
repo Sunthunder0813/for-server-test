@@ -45,18 +45,6 @@ def start_cloudflared(port=5000):
     print(f"Cloudflared tunnel running at: {url}")
     return process, url
 
-# --- Root route serving index.html ---
-INDEX_HTML = open("templates/index.html").read()  # Make sure index.html exists in the templates folder
-
-@app.route("/")
-def index():
-    public_url = app.config.get("PUBLIC_URL", "")
-    html_with_url = INDEX_HTML.replace(
-        'const RASPI_BASE = "https://educated-contest-certain-eau.trycloudflare.com";',
-        f'const RASPI_BASE = "{public_url}";'
-    )
-    return render_template_string(html_with_url)
-
 # --- Simple Tracker ---
 class ByteTrackLite:
     def __init__(self):
@@ -93,6 +81,56 @@ class ByteTrackLite:
                 new_tracks[tid] = t
         self.tracked_objects = new_tracks
         return {k: v for k, v in new_tracks.items() if v['last_seen'] == self.frame_count}
+
+# --- Parking Monitor ---
+class ParkingMonitor:
+    def __init__(self):
+        self.trackers = {"Camera_1": ByteTrackLite(), "Camera_2": ByteTrackLite()}
+        self.timers = {}
+        self.last_upload_time = {}
+        self.zones = {cam: np.array(points) for cam, points in getattr(config, "PARKING_ZONES", {}).items()}
+
+    def process(self, name, res, frame):
+        if name not in self.zones: return
+        fh, fw = frame.shape[:2]
+        cv2.polylines(frame, [self.zones[name]], True, (0, 0, 255), 2)
+        pixel_boxes = [[b[0]*fw, b[1]*fh, b[2]*fw, b[3]*fh] for b in res.xyxy]
+        tracked = self.trackers[name].update(pixel_boxes, res.conf, res.cls)
+        now = time.time()
+        for tid, d in tracked.items():
+            x1, y1, x2, y2 = map(int, d['box'])
+            label = CLASS_NAMES.get(d['cls'], "OBJ")
+            center = ((x1+x2)//2, (y1+y2)//2)
+            if d['cls'] == 0:
+                cv2.rectangle(frame, (x1, y1), (x2, y2), (255, 255, 0), 1)
+                continue
+            in_zone = cv2.pointPolygonTest(self.zones[name], center, False) >= 0
+            if in_zone:
+                self.timers.setdefault((name, tid), now)
+                dur = int(now - self.timers[(name, tid)])
+                is_violation = dur >= config.VIOLATION_TIME_THRESHOLD
+                color = (0, 0, 255) if is_violation else (0, 255, 255)
+                cv2.rectangle(frame, (x1, y1), (x2, y2), color, 2)
+                cv2.putText(frame, f"{label} #{tid}: {dur}s", (x1, y1-8), 0, 0.6, color, 2)
+                if is_violation:
+                    last_up = self.last_upload_time.get((name, tid), 0)
+                    if now - last_up > config.REPEAT_CAPTURE_INTERVAL:
+                        self.log_violation(name, tid, label, frame)
+                        self.last_upload_time[(name, tid)] = now
+            else:
+                cv2.rectangle(frame, (x1, y1), (x2, y2), (255, 0, 0), 2)
+                self.timers.pop((name, tid), None)
+
+    def log_violation(self, cam, tid, label, frame):
+        import datetime
+        now = datetime.datetime.now()
+        date_folder = now.strftime("%B %d, %Y (%A)")
+        date_dir = os.path.join(config.SAVE_DIR, date_folder)
+        os.makedirs(date_dir, exist_ok=True)
+        path = os.path.join(date_dir, f"{cam}-{now.strftime('%H_%M_%S')}.jpg")
+        cv2.imwrite(path, frame)
+        meta = {"tracker_id": tid, "label": label, "timestamp": now.isoformat()}
+        upload_event_to_cloud(cam, frame, meta)
 
 # --- Stream handler ---
 class Stream:

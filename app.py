@@ -116,6 +116,10 @@ def set_pi_url():
     PI_PUBLIC_URL = data.get("public_url", "")
     return jsonify({"success": True, "public_url": PI_PUBLIC_URL})
 
+@app.route('/api/get_pi_url')
+def get_pi_url():
+    return jsonify({"public_url": PI_PUBLIC_URL})
+
 # --- Routes ---
 @app.route('/')
 def index():

@@ -5,9 +5,8 @@ import importlib
 import traceback
 import subprocess
 import re
-from flask import Flask, render_template, jsonify, request, make_response, Response, render_template_string, stream_with_context
+from flask import Flask, render_template, jsonify, request, make_response, Response, render_template_string
 from datetime import datetime
-import time
 
 # Logging
 logging.basicConfig(level=logging.INFO)
@@ -63,33 +62,8 @@ def update_config_py(new_settings):
     importlib.reload(config)
 
 # --- Camera setup ---
-import config
-
-# Only create local camera objects if not using RASPI_PUBLIC_URL
-RASPI_PUBLIC_URL = os.environ.get("RASPI_PUBLIC_URL", "")
-
-if not RASPI_PUBLIC_URL:
-    CAMERA_1_SRC = os.environ.get("CAMERA_1_SRC", config.CAM1_URL)
-    CAMERA_2_SRC = os.environ.get("CAMERA_2_SRC", config.CAM2_URL)
-    camera_1 = cv2.VideoCapture(CAMERA_1_SRC)
-    camera_2 = cv2.VideoCapture(CAMERA_2_SRC)
-else:
-    camera_1 = None
-    camera_2 = None
-
-def get_pi_video_url(cam):
-    # cam: "video_feed_c1" or "video_feed_c2"
-    if RASPI_PUBLIC_URL:
-        base = RASPI_PUBLIC_URL.rstrip("/")
-        return f"{base}/{cam}"
-    return None
-
-# --- Camera status tracking ---
-CAMERA_STATUS = {
-    "Camera_1": {"last_frame_time": 0, "online": False},
-    "Camera_2": {"last_frame_time": 0, "online": False}
-}
-CAMERA_TIMEOUT = 5  # seconds
+camera_1 = cv2.VideoCapture(0)
+camera_2 = cv2.VideoCapture(1)
 
 # Fallback blank frame if camera fails
 blank_frame_path = "blank.png"
@@ -100,20 +74,16 @@ if not os.path.exists(blank_frame_path):
 def gen(camera, cam_name):
     blank_frame = cv2.imread(blank_frame_path)
     while True:
-        if camera is None or not camera.isOpened():
+        if not camera.isOpened():
             frame = blank_frame.copy()
             cv2.putText(frame, f"{cam_name} OFFLINE", (160, 180), 0, 1.5, (0,0,255), 3)
-            CAMERA_STATUS[cam_name]["online"] = False
         else:
             ret, frame = camera.read()
             if not ret:
                 frame = blank_frame.copy()
                 cv2.putText(frame, f"{cam_name} OFFLINE", (160, 180), 0, 1.5, (0,0,255), 3)
-                CAMERA_STATUS[cam_name]["online"] = False
             else:
                 frame = cv2.resize(frame, (640,360))
-                CAMERA_STATUS[cam_name]["last_frame_time"] = time.time()
-                CAMERA_STATUS[cam_name]["online"] = True
         ret, jpeg = cv2.imencode('.jpg', frame)
         if not ret:
             continue
@@ -178,53 +148,27 @@ def violations_page():
 def ping():
     return "pong"
 
-from flask import redirect
-
 @app.route('/video_feed_c1')
 def video_feed_c1():
-    pi_url = get_pi_video_url("video_feed_c1")
-    if pi_url:
-        logger.info(f"Redirecting /video_feed_c1 to {pi_url}")
-        return redirect(pi_url)
-    if camera_1 is None or not camera_1.isOpened():
-        logger.warning("Camera 1 not available (isOpened() == False or camera_1 is None)")
-        return Response("Camera 1 not available", status=503, mimetype='text/plain')
-    logger.info(f'{request.remote_addr} - - [{datetime.datetime.now().strftime("%d/%b/%Y %H:%M:%S")}] "GET /video_feed_c1{request.query_string.decode() and "?" + request.query_string.decode() or ""} HTTP/1.1" 200 -')
-    return Response(
-        stream_with_context(gen(camera_1, "Camera_1")),
-        mimetype='multipart/x-mixed-replace; boundary=frame',
-        headers={"Cache-Control": "no-store"}
-    )
+    return Response(gen(camera_1, "Camera_1"), mimetype='multipart/x-mixed-replace; boundary=frame')
 
 @app.route('/video_feed_c2')
 def video_feed_c2():
-    pi_url = get_pi_video_url("video_feed_c2")
-    if pi_url:
-        logger.info(f"Redirecting /video_feed_c2 to {pi_url}")
-        return redirect(pi_url)
-    if camera_2 is None or not camera_2.isOpened():
-        logger.warning("Camera 2 not available (isOpened() == False or camera_2 is None)")
-        return Response("Camera 2 not available", status=503, mimetype='text/plain')
-    logger.info(f'{request.remote_addr} - - [{datetime.datetime.now().strftime("%d/%b/%Y %H:%M:%S")}] "GET /video_feed_c2{request.query_string.decode() and "?" + request.query_string.decode() or ""} HTTP/1.1" 200 -')
-    return Response(
-        stream_with_context(gen(camera_2, "Camera_2")),
-        mimetype='multipart/x-mixed-replace; boundary=frame',
-        headers={"Cache-Control": "no-store"}
-    )
+    return Response(gen(camera_2, "Camera_2"), mimetype='multipart/x-mixed-replace; boundary=frame')
 
 @app.route('/api/camera_status')
 def camera_status():
     try:
-        now = time.time()
-        status = {}
-        for cam, cam_obj in [("Camera_1", camera_1), ("Camera_2", camera_2)]:
-            # If last frame was sent recently, consider online
-            online = CAMERA_STATUS[cam]["online"] and (now - CAMERA_STATUS[cam]["last_frame_time"] < CAMERA_TIMEOUT)
-            status[cam] = {
-                "reconnecting": not online,
-                "online": online
+        return jsonify({
+            "Camera_1": {
+                "reconnecting": not camera_1.isOpened(),
+                "online": camera_1.isOpened()
+            },
+            "Camera_2": {
+                "reconnecting": not camera_2.isOpened(),
+                "online": camera_2.isOpened()
             }
-        return jsonify(status)
+        })
     except Exception as e:
         logger.error(f"Error checking camera status: {e}")
         return jsonify({"success": False, "error": str(e)}), 500
@@ -274,10 +218,6 @@ def upload_event():
 @app.route('/api/events')
 def api_events():
     return jsonify(EVENTS)
-
-@app.route('/favicon.ico')
-def favicon():
-    return '', 204
 
 # --- Error handler ---
 @app.errorhandler(Exception)

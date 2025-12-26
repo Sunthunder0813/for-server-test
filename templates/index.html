@@ -137,19 +137,50 @@ function checkServerHealth() {
     const banner = document.getElementById('serverStatusBanner');
     const icon = document.getElementById('serverStatusIcon');
     const text = document.getElementById('serverStatusText');
-    fetch(raspiUrl('/ping'), {cache: "no-store"}).then(res=>{
-        if(res.ok){
-            banner.classList.remove('alert-danger'); banner.classList.add('alert-success');
-            icon.innerHTML='<i class="bi bi-check-circle-fill"></i>';
-            text.textContent=' Connected to Raspberry Pi Server';
-            banner.style.display='';
-        } else throw new Error();
-    }).catch(()=>{
-        banner.classList.remove('alert-success'); banner.classList.add('alert-danger');
-        icon.innerHTML='<i class="bi bi-exclamation-triangle-fill"></i>';
-        text.textContent=' Server Offline: Unable to connect';
-        banner.style.display='';
-    });
+    fetch(raspiUrl('/ping'), {cache: "no-store"})
+        .then(res => {
+            if (res.ok) {
+                // Now check camera status
+                fetch(raspiUrl('/api/camera_status'))
+                    .then(r => r.json())
+                    .then(status => {
+                        const cam1 = status.Camera_1 && status.Camera_1.online;
+                        const cam2 = status.Camera_2 && status.Camera_2.online;
+                        if (cam1 || cam2) {
+                            banner.classList.remove('alert-danger');
+                            banner.classList.remove('alert-warning');
+                            banner.classList.add('alert-success');
+                            icon.innerHTML = '<i class="bi bi-check-circle-fill"></i>';
+                            text.textContent = ' Connected to Raspberry Pi Server';
+                        } else {
+                            banner.classList.remove('alert-success');
+                            banner.classList.remove('alert-danger');
+                            banner.classList.add('alert-warning');
+                            icon.innerHTML = '<i class="bi bi-exclamation-triangle-fill"></i>';
+                            text.textContent = ' No Cameras Online';
+                        }
+                        banner.style.display = '';
+                    })
+                    .catch(() => {
+                        banner.classList.remove('alert-success');
+                        banner.classList.remove('alert-warning');
+                        banner.classList.add('alert-danger');
+                        icon.innerHTML = '<i class="bi bi-exclamation-triangle-fill"></i>';
+                        text.textContent = ' Server Error: Unable to get camera status';
+                        banner.style.display = '';
+                    });
+            } else {
+                throw new Error();
+            }
+        })
+        .catch(() => {
+            banner.classList.remove('alert-success');
+            banner.classList.remove('alert-warning');
+            banner.classList.add('alert-danger');
+            icon.innerHTML = '<i class="bi bi-exclamation-triangle-fill"></i>';
+            text.textContent = ' Server Offline: Unable to connect';
+            banner.style.display = '';
+        });
 }
 
 async function loadViolationEvents(){

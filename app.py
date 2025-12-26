@@ -3,7 +3,9 @@ import logging
 import cv2
 import importlib
 import traceback
-from flask import Flask, render_template, jsonify, request, make_response, Response
+import subprocess
+import re
+from flask import Flask, render_template, jsonify, request, make_response, Response, render_template_string
 from datetime import datetime
 
 # Logging
@@ -83,10 +85,38 @@ def gen(camera):
         yield (b'--frame\r\n'
                b'Content-Type: image/jpeg\r\n\r\n' + jpeg.tobytes() + b'\r\n\r\n')
 
+# --- Start Cloudflare Tunnel ---
+def start_cloudflared(port=5000):
+    """Start cloudflared tunnel and return public URL."""
+    process = subprocess.Popen(
+        ["cloudflared", "tunnel", "--url", f"http://localhost:{port}"],
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
+        text=True
+    )
+    url = None
+    for line in iter(process.stdout.readline, ''):
+        print(line.strip())
+        match = re.search(r"https://[a-z0-9\-]+\.trycloudflare\.com", line)
+        if match:
+            url = match.group(0)
+            break
+    if not url:
+        raise RuntimeError("Failed to start cloudflared tunnel")
+    print(f"Cloudflared tunnel running at: {url}")
+    return process, url
+
 # --- Routes ---
 @app.route('/')
 def index():
-    return render_template("index.html")
+    public_url = app.config.get("PUBLIC_URL", "")
+    index_html = open("templates/index.html").read()
+    # Inject dynamic RASPI_BASE URL
+    html_with_url = index_html.replace(
+        'const RASPI_BASE = "https://educated-contest-certain-eau.trycloudflare.com";',
+        f'const RASPI_BASE = "{public_url}";'
+    )
+    return render_template_string(html_with_url)
 
 @app.route('/settings.html')
 def settings_page():
@@ -176,4 +206,13 @@ def handle_exception(e):
 # --- Main ---
 if __name__=="__main__":
     port = int(os.environ.get("PORT",5000))
+
+    # Start cloudflared and get public URL
+    try:
+        cf_proc, public_url = start_cloudflared(port)
+        app.config["PUBLIC_URL"] = public_url
+    except Exception as e:
+        print("Failed to start Cloudflare Tunnel:", e)
+        app.config["PUBLIC_URL"] = ""
+
     app.run(host='0.0.0.0', port=port, threaded=True)

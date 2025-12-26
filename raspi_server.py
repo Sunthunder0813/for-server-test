@@ -199,7 +199,9 @@ threading.Thread(target=processing_worker, args=("Camera_1", c1), daemon=True).s
 threading.Thread(target=processing_worker, args=("Camera_2", c2), daemon=True).start()
 
 def gen_single(stream, cam_name):
+    FRAME_INTERVAL = 1.0 / 12  # ~12 FPS, adjust as needed
     while True:
+        start_time = time.time()
         with proc_lock:
             frame = latest_processed.get(cam_name)
         if frame is None: frame = stream.get_frame()
@@ -210,7 +212,9 @@ def gen_single(stream, cam_name):
             cv2.putText(frame, f"{cam_name} OFFLINE", (400, 360), 0, 1.5, (0,0,255), 3)
         _, buf = cv2.imencode('.jpg', frame)
         yield (b'--frame\r\nContent-Type: image/jpeg\r\n\r\n' + buf.tobytes() + b'\r\n')
-        time.sleep(0.03)
+        elapsed = time.time() - start_time
+        sleep_time = max(0, FRAME_INTERVAL - elapsed)
+        time.sleep(sleep_time)
 
 # --- Flask routes ---
 @app.route('/video_feed_c1')

@@ -125,8 +125,8 @@ function reloadVideo(imgElement, overlay, feedPath){
 
 function checkCameraStatus() {
     fetch(raspiUrl('/api/camera_status')).then(r=>r.json()).then(status=>{
-        overlayC1.classList.toggle('active', status.Camera_1.reconnecting);
-        overlayC2.classList.toggle('active', status.Camera_2.reconnecting);
+        overlayC1.classList.toggle('active', !status.Camera_1.online);
+        overlayC2.classList.toggle('active', !status.Camera_2.online);
     }).catch(()=>{
         overlayC1.classList.add('active');
         overlayC2.classList.add('active');

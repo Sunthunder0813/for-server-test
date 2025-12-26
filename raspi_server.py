@@ -12,9 +12,6 @@ import datetime
 import importlib
 from app_detect import detect, upload_event_to_cloud
 
-# --- ngrok ---
-from pyngrok import ngrok
-
 # --- Flask app ---
 app = Flask(__name__)
 
@@ -132,11 +129,7 @@ class ParkingMonitor:
         if not os.path.exists(date_dir): os.makedirs(date_dir)
         path = os.path.join(date_dir, f"{cam}-{now.strftime('%H_%M_%S')}.jpg")
         cv2.imwrite(path, frame)
-        meta = {
-            "tracker_id": tid,
-            "label": label,
-            "timestamp": now.isoformat()
-        }
+        meta = {"tracker_id": tid, "label": label, "timestamp": now.isoformat()}
         upload_event_to_cloud(cam, frame, meta)
 
 # --- Stream handler ---
@@ -269,14 +262,14 @@ def decode_image(data):
         return cv2.imdecode(img_array, cv2.IMREAD_COLOR)
     return None
 
-# --- Start server with ngrok ---
+# --- Start server ---
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 5000))
     print(f"Starting Flask on 0.0.0.0:{port}")
-
-    # Start ngrok tunnel
-    public_url = ngrok.connect(port)
-    print("ngrok tunnel running at:", public_url)
-
-    # Start Flask
+    
+    # Commented out ngrok for stable LAN testing
+    # from pyngrok import ngrok
+    # public_url = ngrok.connect(port)
+    # print("ngrok tunnel running at:", public_url)
+    
     app.run(host='0.0.0.0', port=port, threaded=True)

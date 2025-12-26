@@ -63,8 +63,12 @@ def update_config_py(new_settings):
     importlib.reload(config)
 
 # --- Camera setup ---
-camera_1 = cv2.VideoCapture(0)
-camera_2 = cv2.VideoCapture(1)
+import config
+CAMERA_1_SRC = os.environ.get("CAMERA_1_SRC", config.CAM1_URL)
+CAMERA_2_SRC = os.environ.get("CAMERA_2_SRC", config.CAM2_URL)
+
+camera_1 = cv2.VideoCapture(CAMERA_1_SRC)
+camera_2 = cv2.VideoCapture(CAMERA_2_SRC)
 
 # --- Camera status tracking ---
 CAMERA_STATUS = {

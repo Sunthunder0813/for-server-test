@@ -137,7 +137,7 @@ function checkServerHealth() {
     const banner = document.getElementById('serverStatusBanner');
     const icon = document.getElementById('serverStatusIcon');
     const text = document.getElementById('serverStatusText');
-    fetch(raspiUrl('/api/ping'), {cache: "no-store"}).then(res=>{
+    fetch(raspiUrl('/ping'), {cache: "no-store"}).then(res=>{
         if(res.ok){
             banner.classList.remove('alert-danger'); banner.classList.add('alert-success');
             icon.innerHTML='<i class="bi bi-check-circle-fill"></i>';

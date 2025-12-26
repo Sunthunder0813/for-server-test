@@ -7,6 +7,7 @@ import requests
 import base64
 from datetime import datetime
 import config
+from hailo_platform import HEF, VDevice, InferVStreams, ConfigureParams, InputVStreamParams, OutputVStreamParams, HailoStreamInterface
 
 logger = logging.getLogger("ParkingApp")
 
@@ -20,7 +21,6 @@ CLOUD_URL = os.environ.get("CLOUD_URL", "https://web-production-787ca.up.railway
 if USE_REMOTE_DETECTION is None:
     # Try to import Hailo, if fails, use remote detection
     try:
-        from hailo_platform import HEF, VDevice, InferVStreams, ConfigureParams, InputVStreamParams, OutputVStreamParams, HailoStreamInterface
         USE_REMOTE_DETECTION = False
     except ImportError:
         USE_REMOTE_DETECTION = True

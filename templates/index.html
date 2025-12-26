@@ -6,60 +6,287 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
     <style>
-        body { background-color: #f8f8f8; color: #f8f9fa; }
-        .video-container { display: flex; flex-wrap: wrap; justify-content: center; align-items: flex-start; min-height: 60vh; overflow-x: auto; width: 100%; box-sizing: border-box; gap: 1.5rem; }
-        .camera-frame-wrapper { position: relative; display: flex; flex-direction: column; align-items: center; width: 100%; max-width: 700px; min-width: 250px; flex: 1 1 350px; overflow: hidden; }
-        .video-frame-container { position: relative; width: 100%; display: flex; align-items: center; justify-content: center; }
-        .video-frame { border-radius: 12px; box-shadow: 0 4px 24px rgba(0,0,0,0.5); border: 2px solid #343a40; width: 100%; height: auto; aspect-ratio: 16/9; background: #000; object-fit: contain; display: block; max-width: 100%; }
-        .camera-label { color: #222; font-weight: bold; margin: 0.5rem 0 0.2rem 0; font-size: 1.1rem; text-align: center; }
-        .reconnecting-overlay { position: absolute; top: 0; left: 0; right: 0; bottom: 0; display: flex; justify-content: center; align-items: center; z-index: 10; background: rgba(30,30,30,0.45); backdrop-filter: blur(6px); pointer-events: none; transition: opacity 0.3s; opacity: 0; }
-        .reconnecting-overlay.active { opacity: 1; pointer-events: auto; }
-        .reconnecting-spinner { display: flex; flex-direction: column; align-items: center; }
-        .reconnecting-spinner .spinner-border { width: 3rem; height: 3rem; color: #ff9800; }
-        .reconnecting-spinner span { margin-top: 1rem; color: #fff; font-size: 1.3rem; font-weight: bold; text-shadow: 0 2px 8px #000; letter-spacing: 1px; animation: pulse 1.2s infinite; }
+        body {
+            background: #181c23;
+            color: #f8f9fa;
+            min-height: 100vh;
+        }
+        .dashboard-container {
+            display: flex;
+            min-height: 100vh;
+        }
+        .sidebar {
+            width: 220px;
+            background: #232733;
+            color: #fff;
+            display: flex;
+            flex-direction: column;
+            align-items: stretch;
+            padding: 0;
+            border-right: 1px solid #232733;
+        }
+        .sidebar .nav-link {
+            color: #bfc7d5;
+            font-weight: 500;
+            padding: 1.1rem 1.5rem;
+            border-radius: 0;
+            transition: background 0.2s;
+        }
+        .sidebar .nav-link.active, .sidebar .nav-link:hover {
+            background: #2d3342;
+            color: #fff;
+        }
+        .sidebar .sidebar-header {
+            font-size: 1.5rem;
+            font-weight: bold;
+            padding: 2rem 1.5rem 1rem 1.5rem;
+            letter-spacing: 1px;
+            color: #ff9800;
+            border-bottom: 1px solid #232733;
+        }
+        .main-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            min-width: 0;
+        }
+        .header-bar {
+            background: #232733;
+            padding: 1rem 2rem;
+            border-bottom: 1px solid #232733;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        .header-bar h1 {
+            color: #ff9800;
+            font-size: 1.6rem;
+            margin: 0;
+            font-weight: bold;
+            letter-spacing: 1px;
+        }
+        .video-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 2rem;
+            justify-content: center;
+            align-items: flex-start;
+            padding: 2rem 2rem 1rem 2rem;
+        }
+        .camera-frame-wrapper {
+            background: #232733;
+            border-radius: 16px;
+            box-shadow: 0 4px 24px rgba(0,0,0,0.7);
+            border: 2px solid #232733;
+            overflow: hidden;
+            min-width: 320px;
+            max-width: 540px;
+            flex: 1 1 350px;
+            position: relative;
+            margin-bottom: 1rem;
+        }
+        .camera-label {
+            background: rgba(0,0,0,0.7);
+            color: #ff9800;
+            font-weight: bold;
+            font-size: 1.1rem;
+            padding: 0.5rem 1rem;
+            position: absolute;
+            top: 0.7rem;
+            left: 0.7rem;
+            border-radius: 8px;
+            z-index: 2;
+            box-shadow: 0 2px 8px #0006;
+        }
+        .video-frame-container {
+            width: 100%;
+            aspect-ratio: 16/9;
+            background: #111;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+        }
+        .video-frame {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            border: 4px solid #111;
+            border-radius: 0 0 12px 12px;
+            background: #000;
+            display: block;
+            box-shadow: 0 2px 12px #000a;
+        }
+        .reconnecting-overlay {
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 10;
+            background: rgba(30,30,30,0.55);
+            backdrop-filter: blur(6px);
+            pointer-events: none;
+            transition: opacity 0.3s;
+            opacity: 0;
+        }
+        .reconnecting-overlay.active {
+            opacity: 1;
+            pointer-events: auto;
+        }
+        .reconnecting-spinner {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .reconnecting-spinner .spinner-border {
+            width: 2.5rem;
+            height: 2.5rem;
+            color: #ff9800;
+        }
+        .reconnecting-spinner span {
+            margin-top: 1rem;
+            color: #fff;
+            font-size: 1.1rem;
+            font-weight: bold;
+            text-shadow: 0 2px 8px #000;
+            letter-spacing: 1px;
+            animation: pulse 1.2s infinite;
+        }
         @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.5; } 100% { opacity: 1; } }
-        @media (max-width: 900px) { .video-container { flex-direction: column; gap: 1.5rem; } .camera-frame-wrapper { max-width: 98vw; } .video-frame { width: 100% !important; height: auto !important; } }
+        .violations-section {
+            background: #232733;
+            border-radius: 16px;
+            margin: 1.5rem 2rem 2rem 2rem;
+            padding: 1.5rem 2rem;
+            box-shadow: 0 4px 24px rgba(0,0,0,0.7);
+        }
+        .violations-section h2 {
+            color: #ff9800;
+            font-size: 1.2rem;
+            font-weight: bold;
+            margin-bottom: 1.2rem;
+        }
+        .violation-timeline {
+            border-left: 3px solid #ff9800;
+            margin-left: 1.2rem;
+            padding-left: 1.5rem;
+        }
+        .violation-card {
+            background: #181c23;
+            border: 1px solid #2d3342;
+            border-radius: 10px;
+            margin-bottom: 1.5rem;
+            display: flex;
+            align-items: flex-start;
+            box-shadow: 0 2px 8px #0004;
+        }
+        .violation-card img {
+            width: 120px;
+            height: 80px;
+            object-fit: cover;
+            border-radius: 10px 0 0 10px;
+            border-right: 2px solid #232733;
+            background: #222;
+        }
+        .violation-card-body {
+            padding: 0.8rem 1rem;
+            flex: 1;
+        }
+        .violation-card-title {
+            color: #ff9800;
+            font-size: 1.05rem;
+            font-weight: bold;
+            margin-bottom: 0.2rem;
+        }
+        .violation-card-meta {
+            color: #bfc7d5;
+            font-size: 0.92rem;
+            margin-bottom: 0.5rem;
+        }
+        .violation-card pre {
+            background: #232733;
+            color: #bfc7d5;
+            font-size: 0.92em;
+            border: none;
+            margin: 0;
+            padding: 0.3rem 0.5rem;
+        }
+        #serverStatusBanner {
+            position: fixed;
+            top: 0; left: 220px; width: calc(100% - 220px);
+            z-index: 9999;
+            font-weight: bold;
+            border-radius: 0 0 8px 8px;
+        }
+        @media (max-width: 1100px) {
+            .dashboard-container { flex-direction: column; }
+            .sidebar { width: 100%; flex-direction: row; border-right: none; border-bottom: 1px solid #232733; }
+            .sidebar .sidebar-header { padding: 1rem 1.5rem; font-size: 1.2rem; }
+            #serverStatusBanner { left: 0; width: 100%; }
+        }
+        @media (max-width: 900px) {
+            .video-container { flex-direction: column; gap: 1.5rem; padding: 1rem; }
+            .violations-section { margin: 1rem; padding: 1rem; }
+        }
+        @media (max-width: 600px) {
+            .sidebar { flex-direction: column; width: 100%; }
+            .main-content { padding: 0; }
+            .violations-section { margin: 0.5rem; padding: 0.5rem; }
+        }
     </style>
 </head>
 <body>
-<div class="container">
-    <h1 class="text-center text-dark my-4" style="font-weight: bold;">Illegal Parking Detection - Live</h1>
-
-    <div class="video-container" id="videoContainer">
-        <div class="camera-frame-wrapper">
-            <span class="camera-label">CCTV 1</span>
-            <div class="video-frame-container">
-                <img src="" class="video-frame" alt="CCTV 1 Feed" id="liveVideoC1">
-                <div class="reconnecting-overlay" id="reconnectingOverlayC1">
-                    <div class="reconnecting-spinner">
-                        <div class="spinner-border" role="status"></div>
-                        <span>Reconnecting...</span>
+<div class="dashboard-container">
+    <nav class="sidebar">
+        <div class="sidebar-header">
+            <i class="bi bi-camera-video-fill"></i> CCTV Monitor
+        </div>
+        <a class="nav-link active" href="/"><i class="bi bi-house-door-fill"></i> Home</a>
+        <a class="nav-link" href="/violations"><i class="bi bi-exclamation-triangle-fill"></i> Violations</a>
+        <a class="nav-link" href="/settings"><i class="bi bi-gear-fill"></i> Settings</a>
+    </nav>
+    <div class="main-content">
+        <div class="header-bar">
+            <h1><i class="bi bi-eye-fill"></i> Illegal Parking Detection - Live</h1>
+            <span class="text-secondary" style="font-size:1.1rem;"><i class="bi bi-clock-history"></i> <span id="clock"></span></span>
+        </div>
+        <div class="video-container" id="videoContainer">
+            <div class="camera-frame-wrapper">
+                <span class="camera-label"><i class="bi bi-camera-video"></i> CCTV 1</span>
+                <div class="video-frame-container">
+                    <img src="" class="video-frame" alt="CCTV 1 Feed" id="liveVideoC1">
+                    <div class="reconnecting-overlay" id="reconnectingOverlayC1">
+                        <div class="reconnecting-spinner">
+                            <div class="spinner-border" role="status"></div>
+                            <span>Reconnecting...</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="camera-frame-wrapper">
+                <span class="camera-label"><i class="bi bi-camera-video"></i> CCTV 2</span>
+                <div class="video-frame-container">
+                    <img src="" class="video-frame" alt="CCTV 2 Feed" id="liveVideoC2">
+                    <div class="reconnecting-overlay" id="reconnectingOverlayC2">
+                        <div class="reconnecting-spinner">
+                            <div class="spinner-border" role="status"></div>
+                            <span>Reconnecting...</span>
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
-        <div class="camera-frame-wrapper">
-            <span class="camera-label">CCTV 2</span>
-            <div class="video-frame-container">
-                <img src="" class="video-frame" alt="CCTV 2 Feed" id="liveVideoC2">
-                <div class="reconnecting-overlay" id="reconnectingOverlayC2">
-                    <div class="reconnecting-spinner">
-                        <div class="spinner-border" role="status"></div>
-                        <span>Reconnecting...</span>
-                    </div>
-                </div>
-            </div>
+        <div class="violations-section">
+            <h2><i class="bi bi-exclamation-triangle-fill"></i> Recent Violations</h2>
+            <div id="violationEvents" class="violation-timeline"></div>
         </div>
     </div>
-
-    <div id="violationEvents" class="mt-4"></div>
 </div>
-
-<div id="serverStatusBanner" class="alert text-center" style="display:none;position:fixed;top:0;left:0;width:100%;z-index:9999;font-weight:bold;">
+<div id="serverStatusBanner" class="alert text-center" style="display:none;">
     <span id="serverStatusIcon"></span>
     <span id="serverStatusText"></span>
 </div>
-
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 <script>
 let RASPI_BASE = "";
@@ -96,6 +323,7 @@ function startApp() {
     setInterval(checkServerHealth, 10000);
     loadViolationEvents();
     setInterval(loadViolationEvents, 10000);
+    startClock();
 }
 
 const liveVideoC1 = document.getElementById('liveVideoC1');
@@ -187,22 +415,34 @@ async function loadViolationEvents(){
     try{
         const res=await fetch('/api/events'); const events=await res.json();
         const container=document.getElementById('violationEvents');
-        if(!events.length){ container.innerHTML="<div class='alert alert-info'>No violations detected yet.</div>"; return; }
+        if(!events.length){
+            container.innerHTML="<div class='alert alert-info'>No violations detected yet.</div>";
+            return;
+        }
         container.innerHTML=events.map(ev=>`
-            <div class="card mb-3">
-                <div class="row g-0">
-                    <div class="col-md-4"><img src="${ev.image_url}" class="img-fluid rounded-start" alt="Violation"></div>
-                    <div class="col-md-8">
-                        <div class="card-body">
-                            <h5 class="card-title">${ev.camera_id}</h5>
-                            <p class="card-text"><small class="text-muted">${ev.timestamp}</small></p>
-                            <pre style="font-size:0.9em;">${JSON.stringify(ev.meta,null,2)}</pre>
-                        </div>
-                    </div>
+            <div class="violation-card">
+                <img src="${ev.image_url}" alt="Violation">
+                <div class="violation-card-body">
+                    <div class="violation-card-title"><i class="bi bi-camera-video"></i> ${ev.camera_id}</div>
+                    <div class="violation-card-meta"><i class="bi bi-clock"></i> ${ev.timestamp}</div>
+                    <pre>${JSON.stringify(ev.meta,null,2)}</pre>
                 </div>
             </div>
         `).join('');
-    }catch{ document.getElementById('violationEvents').innerHTML="<div class='alert alert-danger'>Failed to load events.</div>"; }
+    }catch{
+        document.getElementById('violationEvents').innerHTML="<div class='alert alert-danger'>Failed to load events.</div>";
+    }
+}
+
+// Live clock in header
+function startClock() {
+    function updateClock() {
+        const now = new Date();
+        document.getElementById('clock').textContent =
+            now.toLocaleString(undefined, { hour12: false });
+    }
+    updateClock();
+    setInterval(updateClock, 1000);
 }
 
 window.onload = fetchRaspiBaseAndInit;

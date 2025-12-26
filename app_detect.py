@@ -7,25 +7,29 @@ import requests
 import base64
 from datetime import datetime
 import config
-from hailo_platform import HEF, VDevice, InferVStreams, ConfigureParams, InputVStreamParams, OutputVStreamParams, HailoStreamInterface
 
 logger = logging.getLogger("ParkingApp")
 
-# Try to determine if we should use remote detection
-USE_REMOTE_DETECTION = os.environ.get("USE_REMOTE_DETECTION", None)
-# Force local detection on the Pi
-USE_REMOTE_DETECTION = False
+# Try to import Hailo SDK
+try:
+    from hailo_platform import HEF, VDevice, InferVStreams, ConfigureParams, InputVStreamParams, OutputVStreamParams, HailoStreamInterface
+    HAILO_AVAILABLE = True
+except ImportError:
+    logger.warning("Hailo SDK not found, falling back to remote or CPU detection.")
+    HAILO_AVAILABLE = False
+
+USE_REMOTE_DETECTION = os.environ.get("USE_REMOTE_DETECTION", "0") == "1"
 RASPI_URL = os.environ.get("RASPI_URL", "http://192.168.18.32:5000/detect")
 CLOUD_URL = os.environ.get("CLOUD_URL", "https://web-production-787ca.up.railway.app/api/upload_event")
 
-if not USE_REMOTE_DETECTION:
-    # All Hailo and config imports are only done here
-    class DetectionResult:
-        def __init__(self, xyxy, confs, clss):
-            self.xyxy = xyxy
-            self.conf = confs
-            self.cls = clss
+class DetectionResult:
+    def __init__(self, xyxy, confs, clss):
+        self.xyxy = xyxy
+        self.conf = confs
+        self.cls = clss
 
+if HAILO_AVAILABLE and not USE_REMOTE_DETECTION:
+    # Hailo-based detection
     class HailoDetector:
         def __init__(self, hef_path):
             self.hef = HEF(hef_path)
@@ -78,27 +82,30 @@ if not USE_REMOTE_DETECTION:
         if _detector is None:
             _detector = HailoDetector(config.MODEL_PATH)
         return _detector.run_detection(frames)
+
 else:
-    class DetectionResult:
-        def __init__(self, xyxy, confs, clss):
-            self.xyxy = xyxy
-            self.conf = confs
-            self.cls = clss
+    # Remote or CPU fallback detection
+    import warnings
+    warnings.warn("Hailo detection unavailable, using remote detection fallback.")
 
     def detect(frames):
         results = []
         for frame in frames:
-            _, buf = cv2.imencode('.jpg', frame)
-            img_b64 = base64.b64encode(buf).decode('utf-8')
             try:
-                resp = requests.post(RASPI_URL, json={'image': img_b64}, timeout=10)
-                data = resp.json()
-                if data.get('success'):
-                    xyxy = np.array(data['boxes'])
-                    conf = np.array(data['confidences'])
-                    clss = np.array(data['classes'])
-                    results.append(DetectionResult(xyxy, conf, clss))
+                _, buf = cv2.imencode('.jpg', frame)
+                img_b64 = base64.b64encode(buf).decode('utf-8')
+                if USE_REMOTE_DETECTION:
+                    resp = requests.post(RASPI_URL, json={'image': img_b64}, timeout=10)
+                    data = resp.json()
+                    if data.get('success'):
+                        xyxy = np.array(data['boxes'])
+                        conf = np.array(data['confidences'])
+                        clss = np.array(data['classes'])
+                        results.append(DetectionResult(xyxy, conf, clss))
+                    else:
+                        results.append(DetectionResult(np.array([]), np.array([]), np.array([])))
                 else:
+                    # CPU fallback: return empty detections
                     results.append(DetectionResult(np.array([]), np.array([]), np.array([])))
             except Exception as e:
                 logger.error(f"Remote detection failed: {e}")

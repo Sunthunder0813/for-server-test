@@ -186,71 +186,17 @@ def api_settings():
 @app.route('/api/zone_selector', methods=['POST'])
 def api_zone_selector():
     """
-    Update the parking zone for a camera.
+    Update the parking zone for a camera via cloud link.
     Expects JSON: { "camera": "Camera_1" or "Camera_2", "zone": [[x1,y1], [x2,y2], ...] }
     """
     try:
-        data = request.get_json(force=True)
-        cam = data.get("camera")
-        zone = data.get("zone")
-        if not cam or not isinstance(zone, list) or len(zone) < 3:
-            return jsonify({"success": False, "error": "Invalid camera or zone"}), 400
-
-        import os, re, ast, json as pyjson
-        config_path = os.path.join(os.path.dirname(__file__), "config.py")
-
-        # Read config.py
-        with open(config_path, "r") as f:
-            lines = f.readlines()
-
-        # Find and update PARKING_ZONES robustly
-        zones = {}
-        start_idx = None
-        for i, line in enumerate(lines):
-            if line.strip().startswith("PARKING_ZONES"):
-                start_idx = i
-                break
-
-        if start_idx is not None:
-            # Collect all lines of the dict
-            dict_lines = []
-            for line in lines[start_idx:]:
-                dict_lines.append(line)
-                if "}" in line:
-                    break
-            dict_str = "".join(dict_lines)
-            try:
-                zones = ast.literal_eval(dict_str.split("=",1)[1].strip())
-            except Exception:
-                zones = {}
-        else:
-            zones = {}
-
-        # Update the selected camera
-        zones[cam] = zone
-
-        # Replace or append PARKING_ZONES in config.py
-        new_zones_str = f'PARKING_ZONES = {pyjson.dumps(zones, separators=(",", ":"))}\n'
-        if start_idx is not None:
-            # Remove old PARKING_ZONES block
-            end_idx = start_idx
-            for i in range(start_idx, len(lines)):
-                if "}" in lines[i]:
-                    end_idx = i
-                    break
-            lines = lines[:start_idx] + [new_zones_str] + lines[end_idx+1:]
-        else:
-            lines.append(new_zones_str)
-
-        # Write back to config.py
-        with open(config_path, "w") as f:
-            f.writelines(lines)
-
-        importlib.reload(config)
-        return jsonify({"success": True, "zone": zone})
+        pi_base = get_pi_base()
+        url = f"{pi_base}/api/zone_selector"
+        resp = requests.post(url, json=request.get_json(force=True), timeout=10)
+        return add_cors_headers(Response(resp.content, resp.status_code, resp.headers.items()))
     except Exception as e:
-        logger.error(f"Zone selector error: {e}")
-        return jsonify({"success": False, "error": str(e)}), 500
+        logger.error(f"Zone selector error (cloudlink): {e}")
+        return add_cors_headers(jsonify({"success": False, "error": str(e)})), 502
 
 @app.route('/api/raspi_ip')
 def raspi_ip():

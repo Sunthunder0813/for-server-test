@@ -6,97 +6,120 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
     <style>
+        :root {
+            --primary-bg: #181c23;
+            --sidebar-bg: #232733;
+            --accent: #ff9800;
+            --card-bg: #232733;
+            --card-radius: 18px;
+            --shadow: 0 4px 24px rgba(0,0,0,0.7);
+            --border: 1px solid #232733;
+        }
         body {
-            background: #181c23;
+            background: var(--primary-bg);
             color: #f8f9fa;
             min-height: 100vh;
+            font-family: 'Segoe UI', 'Roboto', Arial, sans-serif;
         }
         .dashboard-container {
             display: flex;
             min-height: 100vh;
+            flex-direction: row;
         }
         .sidebar {
-            width: 220px;
-            background: #232733;
+            width: 240px;
+            background: var(--sidebar-bg);
             color: #fff;
             display: flex;
             flex-direction: column;
             align-items: stretch;
             padding: 0;
-            border-right: 1px solid #232733;
+            border-right: var(--border);
+            min-height: 100vh;
+            transition: width 0.2s;
+        }
+        .sidebar .sidebar-header {
+            font-size: 1.7rem;
+            font-weight: bold;
+            padding: 2rem 1.5rem 1rem 1.5rem;
+            letter-spacing: 1px;
+            color: var(--accent);
+            border-bottom: var(--border);
+            text-shadow: 0 2px 8px #0006;
         }
         .sidebar .nav-link {
             color: #bfc7d5;
             font-weight: 500;
             padding: 1.1rem 1.5rem;
             border-radius: 0;
-            transition: background 0.2s;
+            transition: background 0.2s, color 0.2s;
+            font-size: 1.08rem;
+            display: flex;
+            align-items: center;
+            gap: 0.7em;
         }
         .sidebar .nav-link.active, .sidebar .nav-link:hover {
             background: #2d3342;
             color: #fff;
-        }
-        .sidebar .sidebar-header {
-            font-size: 1.5rem;
-            font-weight: bold;
-            padding: 2rem 1.5rem 1rem 1.5rem;
-            letter-spacing: 1px;
-            color: #ff9800;
-            border-bottom: 1px solid #232733;
         }
         .main-content {
             flex: 1;
             display: flex;
             flex-direction: column;
             min-width: 0;
+            background: var(--primary-bg);
         }
         .header-bar {
-            background: #232733;
-            padding: 1rem 2rem;
-            border-bottom: 1px solid #232733;
+            background: var(--sidebar-bg);
+            padding: 1.2rem 2.5rem;
+            border-bottom: var(--border);
             display: flex;
             align-items: center;
             justify-content: space-between;
+            box-shadow: 0 2px 12px #0003;
         }
         .header-bar h1 {
-            color: #ff9800;
-            font-size: 1.6rem;
+            color: var(--accent);
+            font-size: 2rem;
             margin: 0;
             font-weight: bold;
             letter-spacing: 1px;
+            text-shadow: 0 2px 8px #0006;
         }
         .video-container {
-            display: flex;
-            flex-wrap: wrap;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
             gap: 2rem;
             justify-content: center;
             align-items: flex-start;
             padding: 2rem 2rem 1rem 2rem;
         }
         .camera-frame-wrapper {
-            background: #232733;
-            border-radius: 16px;
-            box-shadow: 0 4px 24px rgba(0,0,0,0.7);
-            border: 2px solid #232733;
+            background: var(--card-bg);
+            border-radius: var(--card-radius);
+            box-shadow: var(--shadow);
+            border: var(--border);
             overflow: hidden;
             min-width: 320px;
             max-width: 540px;
-            flex: 1 1 350px;
             position: relative;
             margin-bottom: 1rem;
+            display: flex;
+            flex-direction: column;
         }
         .camera-label {
             background: rgba(0,0,0,0.7);
-            color: #ff9800;
+            color: var(--accent);
             font-weight: bold;
-            font-size: 1.1rem;
-            padding: 0.5rem 1rem;
+            font-size: 1.15rem;
+            padding: 0.6rem 1.2rem;
             position: absolute;
-            top: 0.7rem;
-            left: 0.7rem;
-            border-radius: 8px;
+            top: 1rem;
+            left: 1rem;
+            border-radius: 10px;
             z-index: 2;
             box-shadow: 0 2px 8px #0006;
+            letter-spacing: 1px;
         }
         .video-frame-container {
             width: 100%;
@@ -106,6 +129,7 @@
             align-items: center;
             justify-content: center;
             position: relative;
+            border-radius: 0 0 14px 14px;
         }
         .video-frame {
             width: 100%;
@@ -116,6 +140,7 @@
             background: #000;
             display: block;
             box-shadow: 0 2px 12px #000a;
+            transition: filter 0.2s;
         }
         .reconnecting-overlay {
             position: absolute;
@@ -142,7 +167,7 @@
         .reconnecting-spinner .spinner-border {
             width: 2.5rem;
             height: 2.5rem;
-            color: #ff9800;
+            color: var(--accent);
         }
         .reconnecting-spinner span {
             margin-top: 1rem;
@@ -155,53 +180,64 @@
         }
         @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.5; } 100% { opacity: 1; } }
         .violations-section {
-            background: #232733;
-            border-radius: 16px;
-            margin: 1.5rem 2rem 2rem 2rem;
-            padding: 1.5rem 2rem;
-            box-shadow: 0 4px 24px rgba(0,0,0,0.7);
+            background: var(--card-bg);
+            border-radius: var(--card-radius);
+            margin: 2rem 2rem 2.5rem 2rem;
+            padding: 2rem 2.5rem;
+            box-shadow: var(--shadow);
         }
         .violations-section h2 {
-            color: #ff9800;
-            font-size: 1.2rem;
+            color: var(--accent);
+            font-size: 1.3rem;
             font-weight: bold;
             margin-bottom: 1.2rem;
+            letter-spacing: 1px;
         }
         .violation-timeline {
-            border-left: 3px solid #ff9800;
-            margin-left: 1.2rem;
-            padding-left: 1.5rem;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+            gap: 1.5rem;
         }
         .violation-card {
-            background: #181c23;
+            background: var(--primary-bg);
             border: 1px solid #2d3342;
-            border-radius: 10px;
-            margin-bottom: 1.5rem;
+            border-radius: 14px;
+            margin-bottom: 0;
             display: flex;
             align-items: flex-start;
             box-shadow: 0 2px 8px #0004;
+            overflow: hidden;
+            transition: box-shadow 0.2s;
+        }
+        .violation-card:hover {
+            box-shadow: 0 4px 16px #0007;
         }
         .violation-card img {
             width: 120px;
             height: 80px;
             object-fit: cover;
-            border-radius: 10px 0 0 10px;
+            border-radius: 14px 0 0 14px;
             border-right: 2px solid #232733;
             background: #222;
+            transition: filter 0.2s;
         }
         .violation-card-body {
             padding: 0.8rem 1rem;
             flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
         }
         .violation-card-title {
-            color: #ff9800;
-            font-size: 1.05rem;
+            color: var(--accent);
+            font-size: 1.08rem;
             font-weight: bold;
             margin-bottom: 0.2rem;
+            letter-spacing: 1px;
         }
         .violation-card-meta {
             color: #bfc7d5;
-            font-size: 0.92rem;
+            font-size: 0.97rem;
             margin-bottom: 0.5rem;
         }
         .violation-card pre {
@@ -211,28 +247,45 @@
             border: none;
             margin: 0;
             padding: 0.3rem 0.5rem;
+            border-radius: 6px;
         }
         #serverStatusBanner {
             position: fixed;
-            top: 0; left: 220px; width: calc(100% - 220px);
+            top: 0; left: 240px; width: calc(100% - 240px);
             z-index: 9999;
             font-weight: bold;
             border-radius: 0 0 8px 8px;
+            box-shadow: 0 2px 12px #0005;
+            transition: left 0.2s, width 0.2s;
         }
-        @media (max-width: 1100px) {
+        @media (max-width: 1200px) {
             .dashboard-container { flex-direction: column; }
-            .sidebar { width: 100%; flex-direction: row; border-right: none; border-bottom: 1px solid #232733; }
-            .sidebar .sidebar-header { padding: 1rem 1.5rem; font-size: 1.2rem; }
+            .sidebar { width: 100%; flex-direction: row; border-right: none; border-bottom: var(--border); min-height: unset; }
+            .sidebar .sidebar-header { padding: 1rem 1.5rem; font-size: 1.2rem; border-bottom: none; }
             #serverStatusBanner { left: 0; width: 100%; }
         }
         @media (max-width: 900px) {
-            .video-container { flex-direction: column; gap: 1.5rem; padding: 1rem; }
+            .video-container { grid-template-columns: 1fr; gap: 1.5rem; padding: 1rem; }
             .violations-section { margin: 1rem; padding: 1rem; }
+            .violation-timeline { grid-template-columns: 1fr; gap: 1rem; }
         }
         @media (max-width: 600px) {
             .sidebar { flex-direction: column; width: 100%; }
             .main-content { padding: 0; }
             .violations-section { margin: 0.5rem; padding: 0.5rem; }
+            .header-bar { padding: 0.7rem 1rem; }
+            .camera-label { font-size: 1rem; padding: 0.4rem 0.8rem; top: 0.5rem; left: 0.5rem; }
+            .camera-frame-wrapper { min-width: unset; max-width: unset; }
+            #serverStatusBanner { left: 0; width: 100%; }
+        }
+        /* Custom scrollbar for sidebar and cards */
+        ::-webkit-scrollbar {
+            width: 8px;
+            background: #232733;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #2d3342;
+            border-radius: 8px;
         }
     </style>
 </head>
@@ -335,7 +388,6 @@ function reloadVideo(imgElement, feedPath){
     let retry = 0;
     function tryLoad(){
         const ts = Date.now();
-        // Use Railway-relative path
         imgElement.src = `${feedPath}?t=${ts}`;
         imgElement.onerror = () => {
             retry++;
@@ -357,19 +409,14 @@ function checkCameraStatus() {
             try {
                 status = await r.json();
             } catch (e) {
-                console.warn("Camera status response not JSON:", e);
                 overlayC1.classList.add('active');
                 overlayC2.classList.add('active');
                 return;
             }
-            console.log("Camera status:", status);
-
-            // Only show overlay if online is not true
             overlayC1.classList.toggle('active', !(status.Camera_1 && status.Camera_1.online === true));
             overlayC2.classList.toggle('active', !(status.Camera_2 && status.Camera_2.online === true));
         })
-        .catch((err) => {
-            console.warn("Camera status fetch error:", err);
+        .catch(() => {
             overlayC1.classList.add('active');
             overlayC2.classList.add('active');
         });
@@ -380,34 +427,29 @@ function checkServerHealth() {
     const icon = document.getElementById('serverStatusIcon');
     const text = document.getElementById('serverStatusText');
 
-    // Check cloud link status from backend
     fetch('/api/cloud_link_status')
         .then(res => res.json())
         .then(linkStatus => {
             if (!linkStatus.cloud_link_active) {
-                banner.classList.remove('alert-success');
-                banner.classList.remove('alert-danger');
+                banner.classList.remove('alert-success', 'alert-danger');
                 banner.classList.add('alert-warning');
                 icon.innerHTML = '<i class="bi bi-cloud-slash-fill"></i>';
                 text.textContent = ' Cloud Link Not Connected';
                 banner.style.display = '';
                 return;
             }
-            // If cloud link is active, check camera status
             fetch('/api/camera_status')
                 .then(r => r.json())
                 .then(status => {
                     const cam1 = status.Camera_1 && status.Camera_1.online;
                     const cam2 = status.Camera_2 && status.Camera_2.online;
                     if (cam1 || cam2) {
-                        banner.classList.remove('alert-danger');
-                        banner.classList.remove('alert-warning');
+                        banner.classList.remove('alert-danger', 'alert-warning');
                         banner.classList.add('alert-success');
                         icon.innerHTML = '<i class="bi bi-check-circle-fill"></i>';
                         text.textContent = ' Connected to Raspberry Pi Server';
                     } else {
-                        banner.classList.remove('alert-success');
-                        banner.classList.remove('alert-danger');
+                        banner.classList.remove('alert-success', 'alert-danger');
                         banner.classList.add('alert-warning');
                         icon.innerHTML = '<i class="bi bi-exclamation-triangle-fill"></i>';
                         text.textContent = ' No Cameras Online';
@@ -415,8 +457,7 @@ function checkServerHealth() {
                     banner.style.display = '';
                 })
                 .catch(() => {
-                    banner.classList.remove('alert-success');
-                    banner.classList.remove('alert-warning');
+                    banner.classList.remove('alert-success', 'alert-warning');
                     banner.classList.add('alert-danger');
                     icon.innerHTML = '<i class="bi bi-exclamation-triangle-fill"></i>';
                     text.textContent = ' Server Error: Unable to get camera status';
@@ -424,8 +465,7 @@ function checkServerHealth() {
                 });
         })
         .catch(() => {
-            banner.classList.remove('alert-success');
-            banner.classList.remove('alert-warning');
+            banner.classList.remove('alert-success', 'alert-warning');
             banner.classList.add('alert-danger');
             icon.innerHTML = '<i class="bi bi-exclamation-triangle-fill"></i>';
             text.textContent = ' Server Offline: Unable to connect';
@@ -456,7 +496,6 @@ async function loadViolationEvents(){
     }
 }
 
-// Live clock in header
 function startClock() {
     function updateClock() {
         const now = new Date();

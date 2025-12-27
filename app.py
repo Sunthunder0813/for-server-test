@@ -162,8 +162,7 @@ def after_request_func(response):
 @app.route('/')
 def index():
     # Always inject the correct RASPI_BASE for the frontend
-    public_url = PI_PUBLIC_URL or ""
-    return render_template('index.html', public_url=public_url)
+    return render_template('index.html', public_url=PI_PUBLIC_URL or "")
 
 @app.route('/settings')
 def settings_page():

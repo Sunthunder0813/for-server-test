@@ -291,8 +291,6 @@
 <script>
 let RASPI_BASE = "";
 
-function raspiUrl(path){ return `${RASPI_BASE}${path}`; }
-
 function setRaspiBase(url) {
     if (url && url.trim() !== "") {
         RASPI_BASE = url;
@@ -337,8 +335,8 @@ function reloadVideo(imgElement, feedPath){
     let retry = 0;
     function tryLoad(){
         const ts = Date.now();
-        imgElement.src = raspiUrl(feedPath) + "?t=" + ts;
-
+        // Use Railway-relative path
+        imgElement.src = `${feedPath}?t=${ts}`;
         imgElement.onerror = () => {
             retry++;
             setTimeout(tryLoad, Math.min(500*(retry**1.5), 5000));
@@ -353,7 +351,7 @@ function reloadVideo(imgElement, feedPath){
 
 // Only toggle overlays based on camera status API
 function checkCameraStatus() {
-    fetch(raspiUrl('/api/camera_status'))
+    fetch('/api/camera_status')
         .then(async r => {
             let status;
             try {
@@ -396,7 +394,7 @@ function checkServerHealth() {
                 return;
             }
             // If cloud link is active, check camera status
-            fetch(raspiUrl('/api/camera_status'))
+            fetch('/api/camera_status')
                 .then(r => r.json())
                 .then(status => {
                     const cam1 = status.Camera_1 && status.Camera_1.online;

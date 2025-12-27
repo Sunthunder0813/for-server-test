@@ -6,7 +6,7 @@ import traceback
 import subprocess
 import re
 import requests
-from flask import Flask, render_template, jsonify, request, make_response, Response, render_template_string, stream_with_context
+from flask import Flask, render_template, jsonify, request, make_response, Response, render_template_string, stream_with_context, after_this_request
 from datetime import datetime
 
 # NOTE: This app runs on Railway and acts as a relay/config interface.
@@ -146,6 +146,17 @@ def pi_public_url():
 def cloud_link_status():
     """Return whether the cloud link (Pi public URL) is set."""
     return jsonify({"cloud_link_active": bool(PI_PUBLIC_URL)})
+
+# --- CORS support ---
+def add_cors_headers(response):
+    response.headers['Access-Control-Allow-Origin'] = '*'
+    response.headers['Access-Control-Allow-Methods'] = 'GET,POST,OPTIONS'
+    response.headers['Access-Control-Allow-Headers'] = 'Content-Type,Authorization'
+    return response
+
+@app.after_request
+def after_request_func(response):
+    return add_cors_headers(response)
 
 # --- Routes ---
 @app.route('/')
@@ -288,8 +299,10 @@ def get_pi_base():
         raise RuntimeError("Pi public URL not set")
     return PI_PUBLIC_URL.rstrip('/')
 
-@app.route('/api/<path:path>', methods=['GET', 'POST'])
+@app.route('/api/<path:path>', methods=['GET', 'POST', 'OPTIONS'])
 def proxy_api(path):
+    if request.method == 'OPTIONS':
+        return add_cors_headers(jsonify({})), 200
     try:
         pi_base = get_pi_base()
         url = f"{pi_base}/api/{path}"
@@ -297,10 +310,11 @@ def proxy_api(path):
             resp = requests.get(url, params=request.args, timeout=10)
         else:
             resp = requests.post(url, json=request.get_json(force=True), timeout=10)
-        return (resp.content, resp.status_code, resp.headers.items())
+        proxy_response = Response(resp.content, resp.status_code, resp.headers.items())
+        return add_cors_headers(proxy_response)
     except Exception as e:
         logger.error(f"Proxy API error: {e}")
-        return jsonify({"success": False, "error": str(e)}), 502
+        return add_cors_headers(jsonify({"success": False, "error": str(e)})), 502
 
 @app.route('/video_feed_c1')
 def proxy_video_feed_c1():
@@ -308,11 +322,12 @@ def proxy_video_feed_c1():
         pi_base = get_pi_base()
         url = f"{pi_base}/video_feed_c1"
         resp = requests.get(url, stream=True, timeout=10)
-        return Response(stream_with_context(resp.iter_content(chunk_size=4096)),
-                        content_type=resp.headers.get('Content-Type', 'multipart/x-mixed-replace; boundary=frame'))
+        proxy_response = Response(stream_with_context(resp.iter_content(chunk_size=4096)),
+                                  content_type=resp.headers.get('Content-Type', 'multipart/x-mixed-replace; boundary=frame'))
+        return add_cors_headers(proxy_response)
     except Exception as e:
         logger.error(f"Proxy video_feed_c1 error: {e}")
-        return "Camera feed unavailable", 502
+        return add_cors_headers(Response("Camera feed unavailable", 502))
 
 @app.route('/video_feed_c2')
 def proxy_video_feed_c2():
@@ -320,31 +335,30 @@ def proxy_video_feed_c2():
         pi_base = get_pi_base()
         url = f"{pi_base}/video_feed_c2"
         resp = requests.get(url, stream=True, timeout=10)
-        return Response(stream_with_context(resp.iter_content(chunk_size=4096)),
-                        content_type=resp.headers.get('Content-Type', 'multipart/x-mixed-replace; boundary=frame'))
+        proxy_response = Response(stream_with_context(resp.iter_content(chunk_size=4096)),
+                                  content_type=resp.headers.get('Content-Type', 'multipart/x-mixed-replace; boundary=frame'))
+        return add_cors_headers(proxy_response)
     except Exception as e:
         logger.error(f"Proxy video_feed_c2 error: {e}")
-        return "Camera feed unavailable", 502
+        return add_cors_headers(Response("Camera feed unavailable", 502))
 
-@app.route('/api/camera_status')
+@app.route('/api/camera_status', methods=['GET', 'OPTIONS'])
 def api_camera_status():
-    """
-    Proxy camera status from the Pi server.
-    """
+    if request.method == 'OPTIONS':
+        return add_cors_headers(jsonify({})), 200
     try:
         pi_base = get_pi_base()
         url = f"{pi_base}/api/camera_status"
         resp = requests.get(url, timeout=10)
-        # Try to parse as JSON to ensure it's valid
         try:
             data = resp.json()
         except Exception:
             logger.error(f"Invalid JSON from Pi camera_status: {resp.text[:200]}")
-            return jsonify({"success": False, "error": "Invalid response from Pi server"}), 502
-        return jsonify(data)
+            return add_cors_headers(jsonify({"success": False, "error": "Invalid response from Pi server"})), 502
+        return add_cors_headers(jsonify(data))
     except Exception as e:
         logger.error(f"Proxy camera_status error: {e}")
-        return jsonify({"success": False, "error": str(e)}), 502
+        return add_cors_headers(jsonify({"success": False, "error": str(e)})), 502
 
 # --- Error handler ---
 @app.errorhandler(Exception)

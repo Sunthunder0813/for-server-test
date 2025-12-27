@@ -5,12 +5,25 @@ import importlib
 import traceback
 import subprocess
 import re
-from flask import Flask, render_template, jsonify, request, make_response, Response, render_template_string
+import requests
+from flask import Flask, render_template, jsonify, request, make_response, Response, render_template_string, stream_with_context
 from datetime import datetime
 
 # NOTE: This app runs on Railway and acts as a relay/config interface.
 # All /api/* endpoints are served by the Raspberry Pi server via the cloud link.
 # The frontend (index.html) communicates with the Pi via the public URL.
+
+# --- Global Configuration ---
+DEFAULT_PORT = int(os.environ.get("PORT", 5000))
+DEFAULT_RASPI_IP = os.environ.get("RASPI_IP", "192.168.18.32")
+DEFAULT_RASPI_PORT = os.environ.get("RASPI_PORT", "5000")
+DEFAULT_RAILWAY_API_URL = os.environ.get("RAILWAY_API_URL", "https://web-production-787ca.up.railway.app")
+CLOUDFLARE_TUNNEL_CMD = ["cloudflared", "tunnel", "--url", f"http://localhost:{DEFAULT_PORT}"]
+CAMERA_FRAME_SIZE = (640, 360)
+BLANK_FRAME_PATH = "blank.jpg"
+STATIC_EVENTS_DIR = "static/events"
+EVENT_IMAGE_FORMAT = "{camera_id}_{timestamp}.jpg"
+EVENT_IMAGE_TIMESTAMP_REPL = lambda ts: ts.replace(':','-').replace('.','-')
 
 # Logging
 logging.basicConfig(level=logging.INFO)
@@ -70,19 +83,18 @@ camera_1 = cv2.VideoCapture(0)
 camera_2 = cv2.VideoCapture(1)
 
 # Fallback blank frame if camera fails
-blank_frame_path = "blank.jpg"
-if not os.path.exists(blank_frame_path):
+if not os.path.exists(BLANK_FRAME_PATH):
     import numpy as np
-    cv2.imwrite(blank_frame_path, np.zeros((360,640,3), dtype=np.uint8))
+    cv2.imwrite(BLANK_FRAME_PATH, np.zeros((CAMERA_FRAME_SIZE[1], CAMERA_FRAME_SIZE[0], 3), dtype=np.uint8))
 
 def gen(camera):
-    blank_frame = cv2.imread(blank_frame_path)
+    blank_frame = cv2.imread(BLANK_FRAME_PATH)
     while True:
         ret, frame = camera.read()
         if not ret:
             frame = blank_frame
         else:
-            frame = cv2.resize(frame, (640,360))
+            frame = cv2.resize(frame, CAMERA_FRAME_SIZE)
         ret, jpeg = cv2.imencode('.jpg', frame)
         if not ret:
             continue
@@ -90,10 +102,10 @@ def gen(camera):
                b'Content-Type: image/jpeg\r\n\r\n' + jpeg.tobytes() + b'\r\n\r\n')
 
 # --- Start Cloudflare Tunnel ---
-def start_cloudflared(port=5000):
+def start_cloudflared(port=DEFAULT_PORT):
     """Start cloudflared tunnel and return public URL."""
     process = subprocess.Popen(
-        ["cloudflared", "tunnel", "--url", f"http://localhost:{port}"],
+        CLOUDFLARE_TUNNEL_CMD,
         stdout=subprocess.PIPE,
         stderr=subprocess.STDOUT,
         text=True
@@ -122,6 +134,7 @@ def set_pi_url():
 
 @app.route('/api/get_pi_url')
 def get_pi_url():
+    # Always return the latest public URL
     return jsonify({"public_url": PI_PUBLIC_URL})
 
 @app.route('/api/pi_public_url')
@@ -230,9 +243,7 @@ def api_zone_selector():
 
 @app.route('/api/raspi_ip')
 def raspi_ip():
-    raspi_ip = os.environ.get("RASPI_IP","192.168.18.32")
-    raspi_port = os.environ.get("RASPI_PORT","5000")
-    return jsonify({"ip": raspi_ip,"port":raspi_port})
+    return jsonify({"ip": DEFAULT_RASPI_IP, "port": DEFAULT_RASPI_PORT})
 
 @app.route('/api/upload_event', methods=['POST'])
 def upload_event():
@@ -243,10 +254,13 @@ def upload_event():
         image_b64 = data.get("image")
         meta = data.get("meta", {})
 
-        if not os.path.exists("static/events"):
-            os.makedirs("static/events")
-        fname = f"{camera_id}_{timestamp.replace(':','-').replace('.','-')}.jpg"
-        img_path = os.path.join("static/events", fname)
+        if not os.path.exists(STATIC_EVENTS_DIR):
+            os.makedirs(STATIC_EVENTS_DIR)
+        fname = EVENT_IMAGE_FORMAT.format(
+            camera_id=camera_id,
+            timestamp=EVENT_IMAGE_TIMESTAMP_REPL(timestamp)
+        )
+        img_path = os.path.join(STATIC_EVENTS_DIR, fname)
 
         import base64
         with open(img_path, "wb") as f:
@@ -255,7 +269,7 @@ def upload_event():
         EVENTS.append({
             "camera_id": camera_id,
             "timestamp": timestamp,
-            "image_url": f"/static/events/{fname}",
+            "image_url": f"/{STATIC_EVENTS_DIR}/{fname}",
             "meta": meta
         })
         return jsonify({"success": True})
@@ -267,6 +281,65 @@ def upload_event():
 def api_events():
     return jsonify(EVENTS)
 
+def get_pi_base():
+    # Returns the current Pi public URL, or raises if not set
+    if not PI_PUBLIC_URL:
+        raise RuntimeError("Pi public URL not set")
+    return PI_PUBLIC_URL.rstrip('/')
+
+@app.route('/api/<path:path>', methods=['GET', 'POST'])
+def proxy_api(path):
+    try:
+        pi_base = get_pi_base()
+        url = f"{pi_base}/api/{path}"
+        if request.method == 'GET':
+            resp = requests.get(url, params=request.args, timeout=10)
+        else:
+            resp = requests.post(url, json=request.get_json(force=True), timeout=10)
+        return (resp.content, resp.status_code, resp.headers.items())
+    except Exception as e:
+        logger.error(f"Proxy API error: {e}")
+        return jsonify({"success": False, "error": str(e)}), 502
+
+@app.route('/video_feed_c1')
+def proxy_video_feed_c1():
+    try:
+        pi_base = get_pi_base()
+        url = f"{pi_base}/video_feed_c1"
+        resp = requests.get(url, stream=True, timeout=10)
+        return Response(stream_with_context(resp.iter_content(chunk_size=4096)),
+                        content_type=resp.headers.get('Content-Type', 'multipart/x-mixed-replace; boundary=frame'))
+    except Exception as e:
+        logger.error(f"Proxy video_feed_c1 error: {e}")
+        return "Camera feed unavailable", 502
+
+@app.route('/video_feed_c2')
+def proxy_video_feed_c2():
+    try:
+        pi_base = get_pi_base()
+        url = f"{pi_base}/video_feed_c2"
+        resp = requests.get(url, stream=True, timeout=10)
+        return Response(stream_with_context(resp.iter_content(chunk_size=4096)),
+                        content_type=resp.headers.get('Content-Type', 'multipart/x-mixed-replace; boundary=frame'))
+    except Exception as e:
+        logger.error(f"Proxy video_feed_c2 error: {e}")
+        return "Camera feed unavailable", 502
+
+@app.route('/api/camera_status')
+def api_camera_status():
+    """
+    Proxy camera status from the Pi server.
+    """
+    try:
+        pi_base = get_pi_base()
+        url = f"{pi_base}/api/camera_status"
+        resp = requests.get(url, timeout=10)
+        return (resp.content, resp.status_code, resp.headers.items())
+    except Exception as e:
+        logger.error(f"Proxy camera_status error: {e}")
+        return jsonify({"success": False, "error": str(e)}), 502
+
+# --- Error handler ---
 @app.errorhandler(Exception)
 def handle_exception(e):
     logger.error("Unhandled Exception: %s\n%s", e, traceback.format_exc())
@@ -276,7 +349,7 @@ def handle_exception(e):
 
 # --- Main ---
 if __name__=="__main__": 
-    port = int(os.environ.get("PORT",5000))
+    port = DEFAULT_PORT
 
     # Start cloudflared and get public URL
     try:

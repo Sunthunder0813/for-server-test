@@ -299,7 +299,7 @@ function setRaspiBase(url) {
         console.log("Using Pi public URL for feeds:", RASPI_BASE);
     } else {
         RASPI_BASE = window.location.origin;
-        console.log("Using Railway origin for feeds:", RASPI_BASE);
+        console.warn("WARNING: Pi public URL not set. Using Railway origin for feeds. This will NOT work for /video_feed_c1, /video_feed_c2, /api/camera_status.");
     }
 }
 
@@ -356,10 +356,20 @@ function checkCameraStatus() {
     fetch(raspiUrl('/api/camera_status'))
         .then(r => r.json())
         .then(status => {
+            // Debug log to see what is returned
+            console.log("Camera status:", status);
+
+            // If the API returns {success: false, ...} treat as offline
+            if (status.success === false) {
+                overlayC1.classList.add('active');
+                overlayC2.classList.add('active');
+                return;
+            }
             overlayC1.classList.toggle('active', !(status.Camera_1 && status.Camera_1.online));
             overlayC2.classList.toggle('active', !(status.Camera_2 && status.Camera_2.online));
         })
-        .catch(() => {
+        .catch((err) => {
+            console.warn("Camera status fetch error:", err);
             overlayC1.classList.add('active');
             overlayC2.classList.add('active');
         });

@@ -8,6 +8,10 @@ import re
 from flask import Flask, render_template, jsonify, request, make_response, Response, render_template_string
 from datetime import datetime
 
+# NOTE: This app runs on Railway and acts as a relay/config interface.
+# All /api/* endpoints are served by the Raspberry Pi server via the cloud link.
+# The frontend (index.html) communicates with the Pi via the public URL.
+
 # Logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("ParkingApp")
@@ -148,25 +152,6 @@ def violations_page():
 def ping():
     return "pong"
 
-@app.route('/video_feed_c1')
-def video_feed_c1():
-    return Response(gen(camera_1), mimetype='multipart/x-mixed-replace; boundary=frame')
-
-@app.route('/video_feed_c2')
-def video_feed_c2():
-    return Response(gen(camera_2), mimetype='multipart/x-mixed-replace; boundary=frame')
-
-@app.route('/api/camera_status')
-def camera_status():
-    try:
-        return jsonify({
-            "Camera_1": {"online": camera_1.isOpened()},
-            "Camera_2": {"online": camera_2.isOpened()}
-        })
-    except Exception as e:
-        logger.error(f"Error checking camera status: {e}")
-        return jsonify({"success": False, "error": str(e)}), 500
-
 @app.route('/api/settings', methods=['GET','POST'])
 def api_settings():
     if request.method=='POST':
@@ -282,7 +267,6 @@ def upload_event():
 def api_events():
     return jsonify(EVENTS)
 
-# --- Error handler ---
 @app.errorhandler(Exception)
 def handle_exception(e):
     logger.error("Unhandled Exception: %s\n%s", e, traceback.format_exc())

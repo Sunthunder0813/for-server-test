@@ -397,3 +397,7 @@ if __name__ == '__main__':
         app.config["PUBLIC_URL"] = ""
 
     app.run(host='0.0.0.0', port=port, threaded=True)
+
+# NOTE: This server runs on Raspberry Pi hardware.
+# All /api/* endpoints and video feeds are served here and exposed via Cloudflare tunnel.
+# The Railway app and frontend communicate with this server via the public URL.

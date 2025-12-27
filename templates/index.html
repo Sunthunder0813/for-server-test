@@ -353,13 +353,16 @@ function reloadVideo(imgElement, feedPath){
 
 // Only toggle overlays based on camera status API
 function checkCameraStatus() {
-    fetch(raspiUrl('/api/camera_status')).then(r=>r.json()).then(status=>{
-        overlayC1.classList.toggle('active', !(status.Camera_1 && status.Camera_1.online));
-        overlayC2.classList.toggle('active', !(status.Camera_2 && status.Camera_2.online));
-    }).catch(()=>{
-        overlayC1.classList.add('active');
-        overlayC2.classList.add('active');
-    });
+    fetch(raspiUrl('/api/camera_status'))
+        .then(r => r.json())
+        .then(status => {
+            overlayC1.classList.toggle('active', !(status.Camera_1 && status.Camera_1.online));
+            overlayC2.classList.toggle('active', !(status.Camera_2 && status.Camera_2.online));
+        })
+        .catch(() => {
+            overlayC1.classList.add('active');
+            overlayC2.classList.add('active');
+        });
 }
 
 function checkServerHealth() {
@@ -456,5 +459,9 @@ function startClock() {
 
 window.onload = fetchRaspiBaseAndInit;
 </script>
+<!--
+NOTE: All /api/* endpoints and video feeds are served by the Raspberry Pi server via the cloud link.
+This interface communicates with the Pi using the public URL set in RASPI_BASE.
+-->
 </body>
 </html>

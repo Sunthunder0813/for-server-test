@@ -319,6 +319,7 @@ function fetchRaspiBaseAndInit() {
 function startApp() {
     reloadVideo(liveVideoC1, "/video_feed_c1");
     reloadVideo(liveVideoC2, "/video_feed_c2");
+    checkCameraStatus(); // Call immediately on startup
     setInterval(checkCameraStatus, 5000);
     setInterval(checkServerHealth, 10000);
     loadViolationEvents();
@@ -350,10 +351,11 @@ function reloadVideo(imgElement, feedPath){
     tryLoad();
 }
 
+// Only toggle overlays based on camera status API
 function checkCameraStatus() {
     fetch(raspiUrl('/api/camera_status')).then(r=>r.json()).then(status=>{
-        overlayC1.classList.toggle('active', !status.Camera_1.online);
-        overlayC2.classList.toggle('active', !status.Camera_2.online);
+        overlayC1.classList.toggle('active', !(status.Camera_1 && status.Camera_1.online));
+        overlayC2.classList.toggle('active', !(status.Camera_2 && status.Camera_2.online));
     }).catch(()=>{
         overlayC1.classList.add('active');
         overlayC2.classList.add('active');

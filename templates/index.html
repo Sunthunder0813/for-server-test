@@ -354,19 +354,21 @@ function reloadVideo(imgElement, feedPath){
 // Only toggle overlays based on camera status API
 function checkCameraStatus() {
     fetch(raspiUrl('/api/camera_status'))
-        .then(r => r.json())
-        .then(status => {
-            // Debug log to see what is returned
-            console.log("Camera status:", status);
-
-            // If the API returns {success: false, ...} treat as offline
-            if (status.success === false) {
+        .then(async r => {
+            let status;
+            try {
+                status = await r.json();
+            } catch (e) {
+                console.warn("Camera status response not JSON:", e);
                 overlayC1.classList.add('active');
                 overlayC2.classList.add('active');
                 return;
             }
-            overlayC1.classList.toggle('active', !(status.Camera_1 && status.Camera_1.online));
-            overlayC2.classList.toggle('active', !(status.Camera_2 && status.Camera_2.online));
+            console.log("Camera status:", status);
+
+            // Only show overlay if online is not true
+            overlayC1.classList.toggle('active', !(status.Camera_1 && status.Camera_1.online === true));
+            overlayC2.classList.toggle('active', !(status.Camera_2 && status.Camera_2.online === true));
         })
         .catch((err) => {
             console.warn("Camera status fetch error:", err);

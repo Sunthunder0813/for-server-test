@@ -150,8 +150,9 @@ def cloud_link_status():
 # --- Routes ---
 @app.route('/')
 def index():
-    # Inject the latest Pi public URL if available
-    return render_template('index.html', public_url=PI_PUBLIC_URL)
+    # Always inject the correct RASPI_BASE for the frontend
+    public_url = PI_PUBLIC_URL or ""
+    return render_template('index.html', public_url=public_url)
 
 @app.route('/settings')
 def settings_page():
@@ -334,7 +335,13 @@ def api_camera_status():
         pi_base = get_pi_base()
         url = f"{pi_base}/api/camera_status"
         resp = requests.get(url, timeout=10)
-        return (resp.content, resp.status_code, resp.headers.items())
+        # Try to parse as JSON to ensure it's valid
+        try:
+            data = resp.json()
+        except Exception:
+            logger.error(f"Invalid JSON from Pi camera_status: {resp.text[:200]}")
+            return jsonify({"success": False, "error": "Invalid response from Pi server"}), 502
+        return jsonify(data)
     except Exception as e:
         logger.error(f"Proxy camera_status error: {e}")
         return jsonify({"success": False, "error": str(e)}), 502

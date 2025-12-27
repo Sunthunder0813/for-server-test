@@ -125,6 +125,11 @@ def pi_public_url():
     logger.info(f"Pi public URL requested: {PI_PUBLIC_URL}")
     return jsonify({"public_url": PI_PUBLIC_URL})
 
+@app.route('/api/cloud_link_status')
+def cloud_link_status():
+    """Return whether the cloud link (Pi public URL) is set."""
+    return jsonify({"cloud_link_active": bool(PI_PUBLIC_URL)})
+
 # --- Routes ---
 @app.route('/')
 def index():

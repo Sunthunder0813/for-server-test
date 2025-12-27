@@ -317,8 +317,8 @@ function fetchRaspiBaseAndInit() {
 }
 
 function startApp() {
-    reloadVideo(liveVideoC1, overlayC1, "/video_feed_c1");
-    reloadVideo(liveVideoC2, overlayC2, "/video_feed_c2");
+    reloadVideo(liveVideoC1, "/video_feed_c1");
+    reloadVideo(liveVideoC2, "/video_feed_c2");
     setInterval(checkCameraStatus, 5000);
     setInterval(checkServerHealth, 10000);
     loadViolationEvents();
@@ -331,19 +331,18 @@ const liveVideoC2 = document.getElementById('liveVideoC2');
 const overlayC1 = document.getElementById('reconnectingOverlayC1');
 const overlayC2 = document.getElementById('reconnectingOverlayC2');
 
-function reloadVideo(imgElement, overlay, feedPath){
+// Only reload the image, do not touch overlay here
+function reloadVideo(imgElement, feedPath){
     let retry = 0;
     function tryLoad(){
         const ts = Date.now();
         imgElement.src = raspiUrl(feedPath) + "?t=" + ts;
-        overlay.classList.add('active');
 
         imgElement.onerror = () => {
             retry++;
             setTimeout(tryLoad, Math.min(500*(retry**1.5), 5000));
         };
         imgElement.onload = () => {
-            overlay.classList.remove('active');
             retry = 0;
             setTimeout(tryLoad, 15000); // reload every 15s
         };

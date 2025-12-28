@@ -165,18 +165,25 @@
             : `<span class="badge bg-secondary">No zone selected</span>`;
     }
 
+    function injectSettingsToForm(data) {
+        // Set form fields from config.py values
+        document.getElementById('violation_time').value = data.VIOLATION_TIME_THRESHOLD;
+        document.getElementById('violation_time').placeholder = data.VIOLATION_TIME_THRESHOLD;
+        document.getElementById('repeat_capture').value = data.REPEAT_CAPTURE_INTERVAL;
+        document.getElementById('repeat_capture').placeholder = data.REPEAT_CAPTURE_INTERVAL;
+        const cam = document.getElementById('cameraSelect').value;
+        if (data.PARKING_ZONES && data.PARKING_ZONES[cam]) {
+            updateZoneDisplay(data.PARKING_ZONES[cam]);
+        } else {
+            updateZoneDisplay(null);
+        }
+    }
+
     function loadSettings() {
         fetch('/api/settings')
             .then(r => r.json())
             .then(data => {
-                document.getElementById('violation_time').value = data.VIOLATION_TIME_THRESHOLD;
-                document.getElementById('repeat_capture').value = data.REPEAT_CAPTURE_INTERVAL;
-                const cam = document.getElementById('cameraSelect').value;
-                if (data.PARKING_ZONES && data.PARKING_ZONES[cam]) {
-                    updateZoneDisplay(data.PARKING_ZONES[cam]);
-                } else {
-                    updateZoneDisplay(null);
-                }
+                injectSettingsToForm(data);
             });
     }
 

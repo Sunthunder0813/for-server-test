@@ -24,10 +24,31 @@
         .dashboard-container {
             display: flex;
             min-height: 100vh;
-            flex-direction: row;
+            flex-direction: column;
+        }
+        .sidebar-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.6);
+            z-index: 999;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s ease;
+        }
+        .sidebar-overlay.active {
+            opacity: 1;
+            pointer-events: auto;
         }
         .sidebar {
+            position: fixed;
+            left: 0;
+            top: 50%;
+            transform: translateY(-50%) translateX(-100%);
             width: 240px;
+            max-height: 80vh;
             background: var(--sidebar-bg);
             color: #fff;
             display: flex;
@@ -35,8 +56,14 @@
             align-items: stretch;
             padding: 0;
             border-right: var(--border);
-            min-height: 100vh;
-            transition: width 0.2s;
+            z-index: 1000;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            box-shadow: 2px 0 12px rgba(0,0,0,0.5);
+            overflow-y: auto;
+            border-radius: 0 12px 12px 0;
+        }
+        .sidebar.open {
+            transform: translateY(-50%) translateX(0);
         }
         .sidebar .sidebar-header {
             font-size: 1.7rem;
@@ -68,6 +95,7 @@
             flex-direction: column;
             min-width: 0;
             background: var(--primary-bg);
+            margin-top: 120px;
         }
         .header-bar {
             background: var(--sidebar-bg);
@@ -77,6 +105,27 @@
             align-items: center;
             justify-content: space-between;
             box-shadow: 0 2px 12px #0003;
+            gap: 1rem;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 998;
+        }
+        .hamburger-menu {
+            background: none;
+            border: none;
+            color: var(--accent);
+            font-size: 1.8rem;
+            cursor: pointer;
+            padding: 0;
+            display: flex;
+            align-items: center;
+            transition: color 0.2s;
+            z-index: 1001;
+        }
+        .hamburger-menu:hover {
+            color: #ffb84d;
         }
         .header-bar h1 {
             color: var(--accent);
@@ -87,12 +136,14 @@
             text-shadow: 0 2px 8px #0006;
         }
         .video-container {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(380px, 1fr));
-            gap: 2rem;
+            display: flex;
+            flex-wrap: wrap;
             justify-content: center;
             align-items: flex-start;
+            gap: 2rem;
             padding: 2rem 2rem 1rem 2rem;
+            margin-top: 2rem;
+            width: 100%;
         }
         .camera-frame-wrapper {
             background: var(--card-bg);
@@ -100,8 +151,8 @@
             box-shadow: var(--shadow);
             border: var(--border);
             overflow: hidden;
-            min-width: 320px;
-            max-width: 100%;
+            min-width: 550px;
+            max-width: 750px;
             position: relative;
             margin-bottom: 1rem;
             display: flex;
@@ -185,6 +236,8 @@
             margin: 2rem 2rem 2.5rem 2rem;
             padding: 2rem 2.5rem;
             box-shadow: var(--shadow);
+            width: calc(100% - 4rem);
+            box-sizing: border-box;
         }
         .violations-section h2 {
             color: var(--accent);
@@ -194,9 +247,11 @@
             letter-spacing: 1px;
         }
         .violation-timeline {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(360px, 1fr));
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
             gap: 1.5rem;
+            width: 100%;
         }
         .violation-card {
             background: var(--primary-bg);
@@ -251,23 +306,68 @@
         }
         #serverStatusBanner {
             position: fixed;
-            top: 0; left: 240px; width: calc(100% - 240px);
+            bottom: 2rem;
+            right: 2rem;
             z-index: 9999;
             font-weight: bold;
-            border-radius: 0 0 8px 8px;
-            box-shadow: 0 2px 12px #0005;
-            transition: left 0.2s, width 0.2s;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+            margin-bottom: 0;
+            max-width: 400px;
+            padding: 1rem 1.5rem !important;
+            animation: slideIn 0.3s ease-out;
+        }
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateX(400px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+        .main-content {
+            margin-top: 60px;
+        }
+        .header-bar {
+            margin-top: 0;
         }
         @media (max-width: 1200px) {
-            .dashboard-container { flex-direction: column; }
-            .sidebar { width: 100%; flex-direction: row; border-right: none; border-bottom: var(--border); min-height: unset; }
-            .sidebar .sidebar-header { padding: 1rem 1.5rem; font-size: 1.2rem; border-bottom: none; }
-            #serverStatusBanner { left: 0; width: 100%; }
+            .hamburger-menu {
+                display: flex;
+            }
+            .video-container {
+                gap: 1.5rem;
+                padding: 1.5rem;
+            }
+            .camera-frame-wrapper {
+                min-width: 500px;
+                max-width: 650px;
+            }
         }
         @media (max-width: 900px) {
-            .video-container { grid-template-columns: 1fr; gap: 1.5rem; padding: 1rem; }
-            .violations-section { margin: 1rem; padding: 1rem; }
-            .violation-timeline { grid-template-columns: 1fr; gap: 1rem; }
+            .video-container { 
+                flex-direction: column;
+                align-items: center;
+                gap: 1.5rem; 
+                padding: 1rem; 
+            }
+            .camera-frame-wrapper {
+                width: 100%;
+                max-width: 100%;
+                min-width: 100%;
+            }
+            .violations-section { 
+                margin: 1rem auto;
+                padding: 1rem; 
+                width: calc(100% - 2rem);
+            }
+            .violation-timeline { 
+                flex-direction: column;
+                align-items: center;
+                gap: 1rem; 
+            }
         }
         @media (max-width: 600px) {
             .sidebar { flex-direction: column; width: 100%; }
@@ -281,12 +381,12 @@
         /* Optimizations for large screens (1400px+) */
         @media (min-width: 1400px) {
             .video-container {
-                grid-template-columns: repeat(3, 1fr);
                 gap: 2.5rem;
                 padding: 2.5rem 3rem 1rem 3rem;
             }
             .camera-frame-wrapper {
-                max-width: 100%;
+                min-width: 600px;
+                max-width: 800px;
             }
             .camera-label {
                 font-size: 1.25rem;
@@ -324,13 +424,12 @@
         /* Optimizations for ultra-wide screens (1800px+) */
         @media (min-width: 1800px) {
             .video-container {
-                grid-template-columns: repeat(4, 1fr);
                 gap: 3rem;
                 padding: 3rem 3rem 1rem 3rem;
             }
-            .violation-timeline {
-                grid-template-columns: repeat(5, 1fr);
-                gap: 2.5rem;
+            .camera-frame-wrapper {
+                min-width: 700px;
+                max-width: 900px;
             }
             .sidebar {
                 width: 280px;
@@ -348,11 +447,131 @@
             background: #2d3342;
             border-radius: 8px;
         }
+        /* Enhanced mobile responsiveness */
+        @media (max-width: 768px) {
+            .header-bar {
+                padding: 0.9rem 1.2rem;
+                gap: 0.5rem;
+            }
+            .header-bar h1 {
+                font-size: 1.4rem;
+                min-width: 0;
+                overflow: hidden;
+                text-overflow: ellipsis;
+            }
+            .video-container {
+                grid-template-columns: 1fr;
+                gap: 1rem;
+                padding: 1rem;
+                margin-top: 0;
+            }
+            .camera-frame-wrapper {
+                margin-bottom: 0;
+            }
+            .camera-label {
+                font-size: 0.95rem;
+                padding: 0.5rem 0.8rem;
+                top: 0.5rem;
+                left: 0.5rem;
+            }
+            .violations-section {
+                margin: 1rem;
+                padding: 1rem;
+            }
+            .violations-section h2 {
+                font-size: 1.1rem;
+                margin-bottom: 1rem;
+            }
+            .violation-timeline {
+                grid-template-columns: 1fr;
+                gap: 0.8rem;
+            }
+            .violation-card {
+                flex-direction: row;
+            }
+            .violation-card img {
+                width: 100px;
+                height: 70px;
+                border-radius: 10px 0 0 10px;
+                border-right: 2px solid #232733;
+                border-bottom: none;
+            }
+            #serverStatusBanner {
+                width: calc(100% - 1rem);
+                left: 0.5rem;
+                right: 0.5rem;
+                bottom: 1rem;
+                font-size: 0.95rem;
+                padding: 0.8rem 1rem !important;
+            }
+        }
+        @media (max-width: 480px) {
+            .main-content {
+                margin-top: 65px;
+            }
+            .header-bar {
+                flex-wrap: wrap;
+                padding: 0.6rem 0.8rem;
+            }
+            .header-bar h1 {
+                font-size: 1.2rem;
+                order: 2;
+                flex-basis: 100%;
+                margin-top: 0.5rem;
+            }
+            .hamburger-menu {
+                order: 1;
+                font-size: 1.5rem;
+            }
+            #clock {
+                order: 3;
+                font-size: 0.9rem;
+                margin-top: 0.5rem;
+                flex-basis: 100%;
+            }
+            .video-container {
+                padding: 0.5rem;
+                gap: 0.8rem;
+            }
+            .camera-label {
+                font-size: 0.85rem;
+                padding: 0.4rem 0.6rem;
+            }
+            .violations-section {
+                margin: 0.5rem;
+                padding: 0.75rem;
+                border-radius: 12px;
+            }
+            .violation-timeline {
+                gap: 0.6rem;
+            }
+            .violation-card {
+                border-radius: 8px;
+            }
+            .violation-card img {
+                width: 80px;
+                height: 60px;
+                border-radius: 8px 0 0 8px;
+            }
+            .violation-card-body {
+                padding: 0.6rem;
+            }
+            .violation-card-title {
+                font-size: 0.95rem;
+            }
+            .violation-card-meta {
+                font-size: 0.85rem;
+            }
+            .violation-card pre {
+                font-size: 0.8em;
+            }
+        }
     </style>
 </head>
 <body>
 <div class="dashboard-container">
-    <nav class="sidebar">
+    <div class="sidebar-overlay" id="sidebarOverlay"></div>
+    <nav class="sidebar" id="sidebar">
         <div class="sidebar-header">
             <i class="bi bi-camera-video-fill"></i> CCTV Monitor
         </div>
@@ -362,6 +581,7 @@
     </nav>
     <div class="main-content">
         <div class="header-bar">
+            <button class="hamburger-menu" id="hamburgerMenu"><i class="bi bi-list"></i></button>
             <h1><i class="bi bi-eye-fill"></i> Illegal Parking Detection - Live</h1>
             <span class="text-secondary" style="font-size:1.1rem;"><i class="bi bi-clock-history"></i> <span id="clock"></span></span>
         </div>
@@ -403,6 +623,29 @@
 </div>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 <script>
+// Hamburger menu functionality
+const hamburgerMenu = document.getElementById('hamburgerMenu');
+const sidebar = document.getElementById('sidebar');
+const sidebarOverlay = document.getElementById('sidebarOverlay');
+
+hamburgerMenu.addEventListener('click', () => {
+    sidebar.classList.toggle('open');
+    sidebarOverlay.classList.toggle('active');
+});
+
+sidebarOverlay.addEventListener('click', () => {
+    sidebar.classList.remove('open');
+    sidebarOverlay.classList.remove('active');
+});
+
+// Close sidebar when clicking nav links
+sidebar.querySelectorAll('.nav-link').forEach(link => {
+    link.addEventListener('click', () => {
+        sidebar.classList.remove('open');
+        sidebarOverlay.classList.remove('active');
+    });
+});
+
 let RASPI_BASE = "{{ public_url }}";
 function ensureRaspiBase(cb) {
     if (!RASPI_BASE || RASPI_BASE === "{{ public_url }}") {
@@ -445,7 +688,7 @@ function fetchRaspiBaseAndInit() {
 function startApp() {
     reloadVideo(liveVideoC1, "/video_feed_c1");
     reloadVideo(liveVideoC2, "/video_feed_c2");
-    checkCameraStatus(); // Call immediately on startup
+    checkCameraStatus; // Call immediately on startup
     setInterval(checkCameraStatus, 5000);
     setInterval(checkServerHealth, 10000);
     loadViolationEvents();

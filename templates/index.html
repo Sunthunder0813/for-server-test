@@ -95,7 +95,7 @@
             flex-direction: column;
             min-width: 0;
             background: var(--primary-bg);
-            margin-top: 120px;
+            margin-top: 60px;
         }
         .header-bar {
             background: var(--sidebar-bg);
@@ -327,12 +327,6 @@
                 transform: translateX(0);
             }
         }
-        .main-content {
-            margin-top: 60px;
-        }
-        .header-bar {
-            margin-top: 0;
-        }
         @media (max-width: 1200px) {
             .hamburger-menu {
                 display: flex;
@@ -378,77 +372,10 @@
             .camera-frame-wrapper { min-width: unset; max-width: unset; }
             #serverStatusBanner { left: 0; width: 100%; }
         }
-        /* Optimizations for large screens (1400px+) */
-        @media (min-width: 1400px) {
-            .video-container {
-                gap: 2.5rem;
-                padding: 2.5rem 3rem 1rem 3rem;
-            }
-            .camera-frame-wrapper {
-                min-width: 600px;
-                max-width: 800px;
-            }
-            .camera-label {
-                font-size: 1.25rem;
-                padding: 0.8rem 1.5rem;
-            }
-            .violation-timeline {
-                grid-template-columns: repeat(4, 1fr);
-                gap: 2rem;
-            }
-            .violation-card {
-                flex-direction: column;
-            }
-            .violation-card img {
-                width: 100%;
-                height: 120px;
-                border-radius: 14px 14px 0 0;
-                border-right: none;
-                border-bottom: 2px solid #232733;
-            }
-            .header-bar {
-                padding: 1.5rem 3rem;
-            }
-            .header-bar h1 {
-                font-size: 2.3rem;
-            }
-            .violations-section {
-                margin: 2.5rem 3rem 3rem 3rem;
-                padding: 2.5rem 3rem;
-            }
-            .violations-section h2 {
-                font-size: 1.5rem;
-                margin-bottom: 1.5rem;
-            }
-        }
-        /* Optimizations for ultra-wide screens (1800px+) */
-        @media (min-width: 1800px) {
-            .video-container {
-                gap: 3rem;
-                padding: 3rem 3rem 1rem 3rem;
-            }
-            .camera-frame-wrapper {
-                min-width: 700px;
-                max-width: 900px;
-            }
-            .sidebar {
-                width: 280px;
-            }
-            .sidebar-header {
-                font-size: 1.9rem;
-            }
-        }
-        /* Custom scrollbar for sidebar and cards */
-        ::-webkit-scrollbar {
-            width: 8px;
-            background: #232733;
-        }
-        ::-webkit-scrollbar-thumb {
-            background: #2d3342;
-            border-radius: 8px;
-        }
-        /* Enhanced mobile responsiveness */
         @media (max-width: 768px) {
+            .main-content {
+                margin-top: 85px;
+            }
             .header-bar {
                 padding: 0.9rem 1.2rem;
                 gap: 0.5rem;
@@ -460,7 +387,6 @@
                 text-overflow: ellipsis;
             }
             .video-container {
-                grid-template-columns: 1fr;
                 gap: 1rem;
                 padding: 1rem;
                 margin-top: 0;
@@ -475,15 +401,14 @@
                 left: 0.5rem;
             }
             .violations-section {
-                margin: 1rem;
+                margin: 0.8rem;
                 padding: 1rem;
             }
             .violations-section h2 {
                 font-size: 1.1rem;
-                margin-bottom: 1rem;
+                margin-bottom: 0.8rem;
             }
             .violation-timeline {
-                grid-template-columns: 1fr;
                 gap: 0.8rem;
             }
             .violation-card {
@@ -507,63 +432,136 @@
         }
         @media (max-width: 480px) {
             .main-content {
-                margin-top: 65px;
+                margin-top: 95px;
             }
             .header-bar {
                 flex-wrap: wrap;
-                padding: 0.6rem 0.8rem;
+                padding: 0.5rem 0.8rem;
+                gap: 0.3rem;
             }
             .header-bar h1 {
-                font-size: 1.2rem;
+                font-size: 1.05rem;
                 order: 2;
                 flex-basis: 100%;
-                margin-top: 0.5rem;
+                margin-top: 0.4rem;
+                white-space: nowrap;
+                overflow: hidden;
+                text-overflow: ellipsis;
             }
             .hamburger-menu {
                 order: 1;
-                font-size: 1.5rem;
+                font-size: 1.3rem;
             }
             #clock {
                 order: 3;
-                font-size: 0.9rem;
-                margin-top: 0.5rem;
+                font-size: 0.85rem;
+                margin-top: 0.3rem;
                 flex-basis: 100%;
             }
             .video-container {
                 padding: 0.5rem;
-                gap: 0.8rem;
+                gap: 0.5rem;
+                margin-top: 0;
+            }
+            .camera-frame-wrapper {
+                border-radius: 12px;
             }
             .camera-label {
-                font-size: 0.85rem;
-                padding: 0.4rem 0.6rem;
+                font-size: 0.8rem;
+                padding: 0.3rem 0.5rem;
+                top: 0.4rem;
+                left: 0.4rem;
+                border-radius: 6px;
+            }
+            .video-frame {
+                border: 2px solid #111;
+                border-radius: 0 0 10px 10px;
             }
             .violations-section {
                 margin: 0.5rem;
-                padding: 0.75rem;
-                border-radius: 12px;
+                padding: 0.8rem;
+                border-radius: 10px;
+                width: calc(100% - 1rem);
+            }
+            .violations-section h2 {
+                font-size: 1rem;
+                margin-bottom: 0.6rem;
             }
             .violation-timeline {
-                gap: 0.6rem;
+                gap: 0.5rem;
             }
             .violation-card {
                 border-radius: 8px;
+                overflow: hidden;
             }
             .violation-card img {
-                width: 80px;
-                height: 60px;
+                width: 70px;
+                height: 50px;
                 border-radius: 8px 0 0 8px;
             }
             .violation-card-body {
-                padding: 0.6rem;
+                padding: 0.5rem;
             }
             .violation-card-title {
-                font-size: 0.95rem;
+                font-size: 0.9rem;
+                margin-bottom: 0.1rem;
             }
             .violation-card-meta {
-                font-size: 0.85rem;
+                font-size: 0.8rem;
+                margin-bottom: 0.3rem;
             }
             .violation-card pre {
-                font-size: 0.8em;
+                font-size: 0.75em;
+                padding: 0.2rem 0.3rem;
+            }
+            #serverStatusBanner {
+                width: calc(100% - 1rem);
+                left: 0.5rem;
+                right: 0.5rem;
+                bottom: 0.8rem;
+                font-size: 0.9rem;
+                padding: 0.6rem 0.8rem !important;
+                max-width: unset;
+                border-radius: 8px;
+            }
+        }
+        @media (max-width: 360px) {
+            .main-content {
+                margin-top: 90px;
+            }
+            .header-bar {
+                padding: 0.4rem 0.6rem;
+            }
+            .header-bar h1 {
+                font-size: 0.95rem;
+            }
+            .hamburger-menu {
+                font-size: 1.2rem;
+            }
+            #clock {
+                font-size: 0.8rem;
+            }
+            .video-container {
+                padding: 0.3rem;
+                gap: 0.3rem;
+            }
+            .camera-label {
+                font-size: 0.75rem;
+                padding: 0.2rem 0.4rem;
+            }
+            .violations-section {
+                margin: 0.3rem;
+                padding: 0.6rem;
+            }
+            .violations-section h2 {
+                font-size: 0.9rem;
+            }
+            .violation-card img {
+                width: 60px;
+                height: 45px;
+            }
+            .violation-card-body {
+                padding: 0.4rem;
             }
         }
     </style>

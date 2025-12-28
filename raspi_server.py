@@ -363,6 +363,58 @@ def api_zone_selector():
         logger.error(f"Zone selector error: {e}")
         return jsonify({"success": False, "error": str(e)}), 500
 
+@app.route('/api/settings', methods=['GET', 'POST'])
+def api_settings():
+    import importlib
+    import json as pyjson
+    import re
+    config_path = os.path.join(os.path.dirname(__file__), "config.py")
+    if request.method == 'POST':
+        data = request.get_json(force=True)
+        # Read config.py
+        with open(config_path, "r") as f:
+            lines = f.readlines()
+
+        def replace_line(key, value):
+            pattern = re.compile(rf"^{key}\s*=\s*.*$")
+            for i, line in enumerate(lines):
+                if pattern.match(line):
+                    if key == "PARKING_ZONES":
+                        lines[i] = f"{key} = {pyjson.dumps(value)}\n"
+                    else:
+                        lines[i] = f"{key} = {value}\n"
+                    return
+            lines.append(f"{key} = {pyjson.dumps(value) if key=='PARKING_ZONES' else value}\n")
+
+        # Update config values
+        if "VIOLATION_TIME_THRESHOLD" in data:
+            replace_line("VIOLATION_TIME_THRESHOLD", data["VIOLATION_TIME_THRESHOLD"])
+        if "REPEAT_CAPTURE_INTERVAL" in data:
+            replace_line("REPEAT_CAPTURE_INTERVAL", data["REPEAT_CAPTURE_INTERVAL"])
+        if "PARKING_ZONES" in data:
+            current_zones = getattr(config, "PARKING_ZONES", {})
+            updated_zones = current_zones.copy()
+            for cam, val in data["PARKING_ZONES"].items():
+                if val is None:
+                    updated_zones.pop(cam, None)
+                else:
+                    updated_zones[cam] = val
+            replace_line("PARKING_ZONES", updated_zones)
+
+        with open(config_path, "w") as f:
+            f.writelines(lines)
+        importlib.reload(config)
+        # Update in-memory zones in ParkingMonitor
+        monitor.zones = {cam: np.array(points) for cam, points in getattr(config, "PARKING_ZONES", {}).items()}
+        return jsonify({"success": True})
+
+    # GET: return current config
+    return jsonify({
+        "VIOLATION_TIME_THRESHOLD": getattr(config, "VIOLATION_TIME_THRESHOLD", 10),
+        "REPEAT_CAPTURE_INTERVAL": getattr(config, "REPEAT_CAPTURE_INTERVAL", 60),
+        "PARKING_ZONES": getattr(config, "PARKING_ZONES", {})
+    })
+
 # --- Graceful shutdown ---
 def shutdown(sig, frame):
     print("Shutting down...")

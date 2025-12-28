@@ -178,15 +178,16 @@ def ping():
 
 @app.route('/api/settings', methods=['GET','POST'])
 def api_settings():
-    # Proxy all settings GET/POST to the Pi server
     try:
         pi_base = get_pi_base()
         url = f"{pi_base}/api/settings"
         if request.method == 'GET':
             resp = requests.get(url, timeout=10)
+            print("DEBUG: Pi /api/settings response:", resp.status_code, resp.text)
             return add_cors_headers(Response(resp.content, resp.status_code, resp.headers.items()))
         else:
             resp = requests.post(url, json=request.get_json(force=True), timeout=10)
+            print("DEBUG: Pi /api/settings POST response:", resp.status_code, resp.text)
             return add_cors_headers(Response(resp.content, resp.status_code, resp.headers.items()))
     except Exception as e:
         logger.error(f"Proxy settings error: {e}")

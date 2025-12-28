@@ -248,6 +248,37 @@
         });
     });
 
+    // Listen for zone data from popup
+    window.addEventListener('message', function(event) {
+        if (event.data && event.data.type === 'zone_selected') {
+            const zone = event.data.zone;
+            if (!Array.isArray(zone) || zone.length < 3) {
+                document.getElementById('status').innerHTML = '<div class="alert alert-danger">Invalid zone received from selector.</div>';
+                return;
+            }
+            const cam = document.getElementById('cameraSelect').value;
+            updateZoneDisplay(zone);
+            document.getElementById('status').innerHTML = '<div class="alert alert-info">Saving zone to server...</div>';
+            fetch('/api/settings', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ PARKING_ZONES: { [cam]: zone } })
+            })
+            .then(r => r.json())
+            .then(result => {
+                if (result.success) {
+                    document.getElementById('status').innerHTML = '<div class="alert alert-success">Zone updated! Now active for ' + cam + '.</div>';
+                    loadSettings();
+                } else {
+                    document.getElementById('status').innerHTML = '<div class="alert alert-danger">Failed to save zone.</div>';
+                }
+            })
+            .catch(() => {
+                document.getElementById('status').innerHTML = '<div class="alert alert-danger">Failed to save zone to server.</div>';
+            });
+        }
+    });
+
     // Launch zone selector for the selected camera
     document.getElementById('selectZoneBtn').addEventListener('click', async function() {
         const status = document.getElementById('status');
@@ -258,42 +289,14 @@
             status.innerHTML = '<div class="alert alert-danger">Raspberry Pi not connected.</div>';
             return;
         }
-        // Open a popup or new tab to run the zone selector (assumes Pi exposes a web UI for zone selection)
-        // If not, you can run zone_selector.py manually and paste the result
-        // Here, we prompt for manual input for simplicity
-        let zoneInput = prompt("Paste the zone coordinates JSON from zone_selector.py for " + cam + " (e.g. [[x1,y1],[x2,y2],...]):");
-        if (!zoneInput) {
-            status.innerHTML = '<div class="alert alert-warning">Zone selection cancelled.</div>';
+        // Open popup for zone selection
+        const popupUrl = `${piPublicUrl}/zone_selector?camera=${encodeURIComponent(cam)}`;
+        const popup = window.open(popupUrl, 'ZoneSelector', 'width=900,height=700');
+        if (!popup) {
+            status.innerHTML = '<div class="alert alert-danger">Popup blocked. Please allow popups for this site.</div>';
             return;
         }
-        let zone;
-        try {
-            zone = JSON.parse(zoneInput);
-            if (!Array.isArray(zone) || zone.length < 3) throw new Error();
-        } catch {
-            status.innerHTML = '<div class="alert alert-danger">Invalid zone format. Please enter a valid JSON array of points.</div>';
-            return;
-        }
-        // Save the zone to config via API
-        status.innerHTML = '<div class="alert alert-info">Saving zone to server...</div>';
-        fetch('/api/settings', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ PARKING_ZONES: { [cam]: zone } })
-        })
-        .then(r => r.json())
-        .then(result => {
-            if (result.success) {
-                updateZoneDisplay(zone);
-                status.innerHTML = '<div class="alert alert-success">Zone updated! Now active for ' + cam + '.</div>';
-                loadSettings();
-            } else {
-                status.innerHTML = '<div class="alert alert-danger">Failed to save zone.</div>';
-            }
-        })
-        .catch(() => {
-            status.innerHTML = '<div class="alert alert-danger">Failed to save zone to server.</div>';
-        });
+        // The popup will postMessage the zone data back to this window
     });
 </script>
 </body>

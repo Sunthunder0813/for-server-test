@@ -301,6 +301,101 @@ def api_camera_status():
         logger.error(f"Proxy camera_status error: {e}")
         return add_cors_headers(jsonify({"success": False, "error": str(e)})), 502
 
+@app.route('/zone_selector')
+def zone_selector():
+    # Serve a minimal HTML page for zone selection
+    cam = request.args.get('camera', 'Camera_1')
+    # Use the correct video feed endpoint for the selected camera
+    video_feed_url = '/video_feed_c1' if cam == 'Camera_1' else '/video_feed_c2'
+    html = f"""
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <title>Zone Selector - {cam}</title>
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <style>
+            body {{ background: #181c23; color: #fff; font-family: sans-serif; }}
+            #canvas {{ border: 2px solid #ff9800; background: #222; cursor: crosshair; }}
+            .btn {{ margin: 8px; padding: 8px 16px; font-size: 1rem; border-radius: 6px; border: none; background: #ff9800; color: #181c23; cursor: pointer; }}
+            .btn:disabled {{ background: #555; color: #aaa; }}
+        </style>
+    </head>
+    <body>
+        <h2>Zone Selector - {cam}</h2>
+        <video id="video" width="800" height="450" autoplay muted style="display:none"></video>
+        <canvas id="canvas" width="800" height="450"></canvas>
+        <div>
+            <button class="btn" id="undoBtn">Undo</button>
+            <button class="btn" id="clearBtn">Clear</button>
+            <button class="btn" id="finishBtn" disabled>Finish</button>
+        </div>
+        <div id="coords" style="margin-top:10px"></div>
+        <script>
+            const video = document.getElementById('video');
+            const canvas = document.getElementById('canvas');
+            const ctx = canvas.getContext('2d');
+            let points = [];
+
+            // Draw points and polygon
+            function redraw() {{
+                ctx.clearRect(0,0,canvas.width,canvas.height);
+                ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+                ctx.strokeStyle = "#00ff00";
+                ctx.lineWidth = 2;
+                if (points.length > 0) {{
+                    ctx.beginPath();
+                    ctx.moveTo(points[0][0], points[0][1]);
+                    for (let i=1; i<points.length; ++i) {{
+                        ctx.lineTo(points[i][0], points[i][1]);
+                    }}
+                    if (points.length > 2) ctx.closePath();
+                    ctx.stroke();
+                    for (const pt of points) {{
+                        ctx.beginPath();
+                        ctx.arc(pt[0], pt[1], 6, 0, 2*Math.PI);
+                        ctx.fillStyle = "#ff9800";
+                        ctx.fill();
+                    }}
+                }}
+                document.getElementById('coords').textContent = "Points: " + JSON.stringify(points);
+                document.getElementById('finishBtn').disabled = points.length < 3;
+            }}
+
+            canvas.addEventListener('click', function(e) {{
+                const rect = canvas.getBoundingClientRect();
+                const x = Math.round(e.clientX - rect.left);
+                const y = Math.round(e.clientY - rect.top);
+                points.push([x, y]);
+                redraw();
+            }});
+            document.getElementById('undoBtn').onclick = function() {{
+                points.pop();
+                redraw();
+            }};
+            document.getElementById('clearBtn').onclick = function() {{
+                points = [];
+                redraw();
+            }};
+            document.getElementById('finishBtn').onclick = function() {{
+                if (points.length < 3) return;
+                if (window.opener) {{
+                    window.opener.postMessage({{type: "zone_selected", zone: points}}, "*");
+                }}
+                window.close();
+            }};
+
+            // Load video stream
+            video.src = "{video_feed_url}";
+            video.onloadeddata = function() {{
+                redraw();
+                setInterval(redraw, 100); // update canvas with live video
+            }};
+        </script>
+    </body>
+    </html>
+    """
+    return html
+
 # --- Error handler ---
 @app.errorhandler(Exception)
 def handle_exception(e):

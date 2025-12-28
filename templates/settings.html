@@ -248,7 +248,8 @@
         });
     });
 
-    document.getElementById('selectZoneBtn').addEventListener('click', function() {
+    // Launch zone selector for the selected camera
+    document.getElementById('selectZoneBtn').addEventListener('click', async function() {
         const status = document.getElementById('status');
         const cam = document.getElementById('cameraSelect').value;
         status.innerHTML = '<div class="alert alert-info">Launching zone selector... Please complete selection in the popup window.</div>';
@@ -257,24 +258,42 @@
             status.innerHTML = '<div class="alert alert-danger">Raspberry Pi not connected.</div>';
             return;
         }
-        fetch(piPublicUrl + '/api/zone_selector', {
+        // Open a popup or new tab to run the zone selector (assumes Pi exposes a web UI for zone selection)
+        // If not, you can run zone_selector.py manually and paste the result
+        // Here, we prompt for manual input for simplicity
+        let zoneInput = prompt("Paste the zone coordinates JSON from zone_selector.py for " + cam + " (e.g. [[x1,y1],[x2,y2],...]):");
+        if (!zoneInput) {
+            status.innerHTML = '<div class="alert alert-warning">Zone selection cancelled.</div>';
+            return;
+        }
+        let zone;
+        try {
+            zone = JSON.parse(zoneInput);
+            if (!Array.isArray(zone) || zone.length < 3) throw new Error();
+        } catch {
+            status.innerHTML = '<div class="alert alert-danger">Invalid zone format. Please enter a valid JSON array of points.</div>';
+            return;
+        }
+        // Save the zone to config via API
+        status.innerHTML = '<div class="alert alert-info">Saving zone to server...</div>';
+        fetch('/api/settings', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ camera: cam, zone: null }) // zone: null triggers Pi-side selector
+            body: JSON.stringify({ PARKING_ZONES: { [cam]: zone } })
         })
-            .then(r => r.json())
-            .then(data => {
-                if (data.success && data.zone) {
-                    updateZoneDisplay(data.zone);
-                    status.innerHTML = '<div class="alert alert-success">Zone area updated from selector! Click "Save Settings" to apply.</div>';
-                    localStorage.setItem('zoneChanged', '1');
-                } else {
-                    status.innerHTML = '<div class="alert alert-danger">Zone selection failed.</div>';
-                }
-            })
-            .catch(() => {
-                status.innerHTML = '<div class="alert alert-danger">Zone selector error. Could not reach Raspberry Pi.</div>';
-            });
+        .then(r => r.json())
+        .then(result => {
+            if (result.success) {
+                updateZoneDisplay(zone);
+                status.innerHTML = '<div class="alert alert-success">Zone updated! Now active for ' + cam + '.</div>';
+                loadSettings();
+            } else {
+                status.innerHTML = '<div class="alert alert-danger">Failed to save zone.</div>';
+            }
+        })
+        .catch(() => {
+            status.innerHTML = '<div class="alert alert-danger">Failed to save zone to server.</div>';
+        });
     });
 </script>
 </body>

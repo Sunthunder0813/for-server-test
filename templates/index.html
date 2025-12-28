@@ -312,7 +312,7 @@
                     <div class="reconnecting-overlay" id="reconnectingOverlayC1">
                         <div class="reconnecting-spinner">
                             <div class="spinner-border" role="status"></div>
-                            <span>Reconnecting...</span>
+                            <span>Reconnecting</span>
                         </div>
                     </div>
                 </div>
@@ -324,7 +324,7 @@
                     <div class="reconnecting-overlay" id="reconnectingOverlayC2">
                         <div class="reconnecting-spinner">
                             <div class="spinner-border" role="status"></div>
-                            <span>Reconnecting...</span>
+                            <span>Reconnecting</span>
                         </div>
                     </div>
                 </div>
@@ -466,7 +466,7 @@ function checkServerHealth() {
                         banner.classList.remove('alert-success', 'alert-danger');
                         banner.classList.add('alert-warning');
                         icon.innerHTML = '<i class="bi bi-exclamation-triangle-fill"></i>';
-                        text.textContent = ' No Cameras Online';
+                        text.textContent = ' Cameras Offline: Unable to get video feeds';
                     }
                     banner.style.display = '';
                 })

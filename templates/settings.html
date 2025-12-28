@@ -166,10 +166,10 @@
     }
 
     function injectSettingsToForm(data) {
-        // Set form fields from config.py values
-        document.getElementById('violation_time').value = data.VIOLATION_TIME_THRESHOLD;
+        // Set placeholder only, not value
+        document.getElementById('violation_time').value = "";
         document.getElementById('violation_time').placeholder = data.VIOLATION_TIME_THRESHOLD;
-        document.getElementById('repeat_capture').value = data.REPEAT_CAPTURE_INTERVAL;
+        document.getElementById('repeat_capture').value = "";
         document.getElementById('repeat_capture').placeholder = data.REPEAT_CAPTURE_INTERVAL;
         const cam = document.getElementById('cameraSelect').value;
         if (data.PARKING_ZONES && data.PARKING_ZONES[cam]) {
@@ -184,6 +184,9 @@
             .then(r => r.json())
             .then(data => {
                 injectSettingsToForm(data);
+            })
+            .catch(() => {
+                document.getElementById('status').innerHTML = '<div class="alert alert-danger">Failed to load settings from server.</div>';
             });
     }
 
@@ -198,8 +201,8 @@
         const status = document.getElementById('status');
         const cam = document.getElementById('cameraSelect').value;
         let body = {
-            VIOLATION_TIME_THRESHOLD: parseInt(document.getElementById('violation_time').value),
-            REPEAT_CAPTURE_INTERVAL: parseInt(document.getElementById('repeat_capture').value)
+            VIOLATION_TIME_THRESHOLD: parseInt(document.getElementById('violation_time').value) || parseInt(document.getElementById('violation_time').placeholder),
+            REPEAT_CAPTURE_INTERVAL: parseInt(document.getElementById('repeat_capture').value) || parseInt(document.getElementById('repeat_capture').placeholder)
         };
         if (lastZone && Array.isArray(lastZone) && lastZone.length > 2) {
             body.PARKING_ZONES = { [cam]: lastZone };
@@ -212,17 +215,17 @@
         .then(r => r.json())
         .then(result => {
             if (result.success) {
-                status.innerHTML = '<div class="alert alert-success">Settings saved successfully!</div>';
+                document.getElementById('status').innerHTML = '<div class="alert alert-success">Settings saved successfully!</div>';
                 setTimeout(() => {
                     loadSettings();
-                    status.innerHTML = '';
+                    document.getElementById('status').innerHTML = '';
                 }, 1000);
             } else {
-                status.innerHTML = '<div class="alert alert-danger">Error saving settings</div>';
+                document.getElementById('status').innerHTML = '<div class="alert alert-danger">Error saving settings</div>';
             }
         })
         .catch(err => {
-            status.innerHTML = '<div class="alert alert-danger">Error saving settings</div>';
+            document.getElementById('status').innerHTML = '<div class="alert alert-danger">Error saving settings</div>';
         });
     });
 

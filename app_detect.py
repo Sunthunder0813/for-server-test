@@ -20,7 +20,7 @@ except ImportError:
 
 USE_REMOTE_DETECTION = os.environ.get("USE_REMOTE_DETECTION", "0") == "1"
 RASPI_URL = os.environ.get("RASPI_URL", "http://192.168.18.32:5000/detect")
-CLOUD_URL = os.environ.get("CLOUD_URL", "https://web-production-787ca.up.railway.app/api/upload_event")
+CLOUD_URL = os.environ.get("CLOUD_URL", "https://illegal-parking-flask.onrender.com/api/upload_event")
 
 class DetectionResult:
     def __init__(self, xyxy, confs, clss):

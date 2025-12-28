@@ -1,3 +1,6 @@
 sudo apt install xserver-xorg-video-dummy -y
 sudo systemctl enable vncserver-x11-serviced
 sudo systemctl start vncserver-x11-serviced
+
+
+100.127.142.52

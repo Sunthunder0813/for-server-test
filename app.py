@@ -183,15 +183,16 @@ def api_settings():
         url = f"{pi_base}/api/settings"
         if request.method == 'GET':
             resp = requests.get(url, timeout=10)
-            print("DEBUG: Pi /api/settings response:", resp.status_code, resp.text)
-            return add_cors_headers(Response(resp.content, resp.status_code, resp.headers.items()))
+            logger.info("Proxy /api/settings GET: Pi returned %s %s", resp.status_code, resp.text)
+            # Ensure correct content type and pass-through
+            return Response(resp.content, status=resp.status_code, content_type=resp.headers.get('Content-Type', 'application/json'))
         else:
             resp = requests.post(url, json=request.get_json(force=True), timeout=10)
-            print("DEBUG: Pi /api/settings POST response:", resp.status_code, resp.text)
-            return add_cors_headers(Response(resp.content, resp.status_code, resp.headers.items()))
+            logger.info("Proxy /api/settings POST: Pi returned %s %s", resp.status_code, resp.text)
+            return Response(resp.content, status=resp.status_code, content_type=resp.headers.get('Content-Type', 'application/json'))
     except Exception as e:
         logger.error(f"Proxy settings error: {e}")
-        return add_cors_headers(jsonify({"success": False, "error": str(e)})), 502
+        return jsonify({"success": False, "error": str(e)}), 502
 
 @app.route('/api/raspi_ip')
 def raspi_ip():
